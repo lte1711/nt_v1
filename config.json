@@ -1,0 +1,7 @@
+{
+  "binance_testnet": {
+    "api_key": "zSUhTG8Y5qh7eeP0hqCJ2iCM6pY6tTu4qTgIqjFZFxFjDO25jY4prPTXfe7CEBAW",
+    "api_secret": "MpgM2zlqz9s7SkrgsE5KCXqwliv1xaIYn1kaYIhabthGXYp5o50hpB68HcZzrPv0",
+    "base_url": "https://demo-fapi.binance.com"
+  }
+}

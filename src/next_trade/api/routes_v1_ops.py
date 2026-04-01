@@ -148,9 +148,11 @@ def _load_runtime_env_defaults() -> None:
     root = _project_root()
     env_path = root / ".env"
     if not env_path.exists():
+        print(f"DEBUG: .env file not found at {env_path}")
         return
 
     try:
+        print(f"DEBUG: Loading .env from {env_path}")
         for raw_line in env_path.read_text(encoding="utf-8", errors="replace").splitlines():
             line = raw_line.strip()
             if not line or line.startswith("#") or "=" not in line:
@@ -160,7 +162,11 @@ def _load_runtime_env_defaults() -> None:
             value = value.strip().strip('"').strip("'")
             if key and value and not os.getenv(key):
                 os.environ[key] = value
-    except Exception:
+                print(f"DEBUG: Set env var {key}={value[:20]}...")
+            elif key and value and os.getenv(key):
+                print(f"DEBUG: Env var {key} already exists, skipping")
+    except Exception as e:
+        print(f"DEBUG: Error loading .env: {e}")
         return
 
 
@@ -243,11 +249,16 @@ async def get_investor_account_probe() -> dict[str, Any]:
 
     api_key = os.getenv("BINANCE_TESTNET_API_KEY") or os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER")
     api_secret = os.getenv("BINANCE_TESTNET_API_SECRET") or os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER")
+    
+    # DEBUG: 환경변수 상태 로깅
+    print(f"DEBUG: api_key={api_key[:10]}... if api_key else None")
+    print(f"DEBUG: api_secret={api_secret[:10]}... if api_secret else None")
+    print(f"DEBUG: env_vars loaded={list(os.environ.keys())}")
 
     return {
         "ok": True,
         "ts": datetime.now(timezone.utc).isoformat(),
         "credentials_present": bool(api_key and api_secret),
-        "api_base": os.getenv("BINANCE_TESTNET_BASE_URL") or os.getenv("BINANCE_FUTURES_TESTNET_BASE_URL") or "https://testnet.binancefuture.com",
+        "api_base": os.getenv("BINANCE_TESTNET_BASE_URL") or os.getenv("BINANCE_FUTURES_TESTNET_BASE_URL") or "https://demo-fapi.binance.com",
         "mode": "probe_only",
     }
