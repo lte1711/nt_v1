@@ -34,7 +34,7 @@ foreach ($row in $manifestRows) {
 
 $dashboardApi = 'ERROR'
 try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec 10
+    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec 10
     $dashboardApi = [string][int]$resp.StatusCode
 } catch {
     $dashboardApi = 'ERROR:' + $_.Exception.Message

@@ -65,7 +65,7 @@ async def api_status():
         "process_count": process_count,
         "python_process_count": python_processes,
         "api_server_port": 8100,
-        "dashboard_port": 8787,
+        "dashboard_port": 8788,
         "orders_checked": "unknown",
         "system_status": "normal",
         "timestamp": datetime.now(timezone.utc).isoformat(),

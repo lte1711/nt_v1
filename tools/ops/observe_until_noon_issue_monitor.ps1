@@ -134,7 +134,7 @@ Append-JsonLine -Path $snapshotPath -Row @{
 while ((Get-Date) -lt $endAt) {
     $now = Get-Date
 
-    $runtimeResp = Read-JsonHttp -Uri "http://127.0.0.1:8787/api/runtime"
+    $runtimeResp = Read-JsonHttp -Uri "http://127.0.0.1:8788/api/runtime"
     $investorResp = Read-JsonHttp -Uri "http://127.0.0.1:8100/api/v1/investor/positions"
 
     $runtimeJson = Parse-Json -Text $runtimeResp.body

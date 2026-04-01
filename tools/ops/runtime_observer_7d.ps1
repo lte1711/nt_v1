@@ -170,7 +170,7 @@ $lastWatchdogAlive = $true
 while ((Get-Date) -lt $obsEnd) {
     $now = Get-Date
     $health = Read-JsonHttp -Uri "http://127.0.0.1:8100/api/v1/ops/health"
-    $runtime = Read-JsonHttp -Uri "http://127.0.0.1:8787/api/runtime"
+    $runtime = Read-JsonHttp -Uri "http://127.0.0.1:8788/api/runtime"
     $positions = Read-JsonHttp -Uri "http://127.0.0.1:8100/api/v1/investor/positions"
     $latestRuntime = Get-LatestRuntimeEvent
     $orderCounts = Get-OrderCounters

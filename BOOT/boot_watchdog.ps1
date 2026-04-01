@@ -18,7 +18,7 @@ if (-not (Test-Path $pythonExe) -and (Test-Path $venvFallback)) {
     $pythonExe = $venvFallback
 }
 $dashScript = Join-Path $engineRoot "tools\dashboard\multi5_dashboard_server.py"
-$dashStartScript = Join-Path $bootRoot "start_dashboard_8787.ps1"
+$dashStartScript = Join-Path $bootRoot "start_dashboard_8788.ps1"
 $logPath = Join-Path $projectRoot "logs\service\boot_watchdog_log.txt"
 $completionStatusPath = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "auto_boot_completion_status.json" -EnsureParent
 
@@ -117,7 +117,7 @@ function Write-CompletionStatus([bool]$completed, [string]$message) {
 }
 
 function Open-DashboardCompletionPage {
-    $url = "http://127.0.0.1:8787/"
+    $url = "http://127.0.0.1:8788/"
     $sessionName = $env:SESSIONNAME
     $interactive = [Environment]::UserInteractive
     Log "DASHBOARD_OPEN_ATTEMPT url=$url session=$sessionName interactive=$interactive"
@@ -317,11 +317,11 @@ function Ensure-EngineAndGuard {
 function Ensure-Dashboard {
     $autoGuardCount = Get-AutoGuardCount
     if ($autoGuardCount -ge 1) {
-        Log "DASH_8787_DEFER_TO_AUTOGUARD autoguard_count=$autoGuardCount"
+        Log "DASH_8788_DEFER_TO_AUTOGUARD autoguard_count=$autoGuardCount"
         return
     }
     $listenerPids = @(
-        Get-NetTCPConnection -State Listen -LocalPort 8787 -ErrorAction SilentlyContinue |
+        Get-NetTCPConnection -State Listen -LocalPort 8788 -ErrorAction SilentlyContinue |
         Select-Object -ExpandProperty OwningProcess -Unique
     )
     $dashProc = @(
@@ -354,15 +354,15 @@ function Ensure-Dashboard {
             }
         )
     }
-    if ((Test-PortListening 8787) -and $dashProc.Count -ge 1) {
+    if ((Test-PortListening 8788) -and $dashProc.Count -ge 1) {
         return
     }
     if ($dashProc.Count -eq 0) {
-        Log "DASH_8787_START_ATTEMPT script=multi5_dashboard_server.py"
+        Log "DASH_8788_START_ATTEMPT script=multi5_dashboard_server.py"
         try {
             & $dashStartScript | Out-Null
         } catch {
-            Log "DASH_8787_START_ERROR error=$($_.Exception.Message)"
+            Log "DASH_8788_START_ERROR error=$($_.Exception.Message)"
         }
         Start-Sleep -Seconds $DashWaitSec
     }
@@ -390,21 +390,21 @@ Enforce-SingleEngine
 
 $api = Test-PortListening 8100
 $ui = Test-PortListening 3001
-$dash = Test-PortListening 8787
+$dash = Test-PortListening 8788
 $engineCount = @(Get-EngineRootProcesses).Count
 $guardCount = Get-GuardCount
 $autoGuardCount = Get-AutoGuardCount
 $autoReady = $api -and $ui -and $dash -and ($engineCount -ge 1) -and ($guardCount -ge 1) -and ($autoGuardCount -ge 1)
 
 if ($autoReady) {
-    $doneMsg = "AUTO_EXECUTION_COMPLETE: API_8100/OPS_UI_3001/DASH_8787/ENGINE/RUNTIME_GUARD/PHASE5_AUTOGUARD OK"
+    $doneMsg = "AUTO_EXECUTION_COMPLETE: API_8100/OPS_UI_3001/DASH_8788/ENGINE/RUNTIME_GUARD/PHASE5_AUTOGUARD OK"
     Write-CompletionStatus -completed $true -message $doneMsg
     Log "AUTO_BOOT_COMPLETE message=$doneMsg"
 } else {
-    $failMsg = "AUTO_EXECUTION_INCOMPLETE: API_8100=$api OPS_UI_3001=$ui DASH_8787=$dash ENGINE_COUNT=$engineCount RUNTIME_GUARD_COUNT=$guardCount PHASE5_AUTOGUARD_COUNT=$autoGuardCount"
+    $failMsg = "AUTO_EXECUTION_INCOMPLETE: API_8100=$api OPS_UI_3001=$ui DASH_8788=$dash ENGINE_COUNT=$engineCount RUNTIME_GUARD_COUNT=$guardCount PHASE5_AUTOGUARD_COUNT=$autoGuardCount"
     Write-CompletionStatus -completed $false -message $failMsg
     Log "AUTO_BOOT_INCOMPLETE message=$failMsg"
 }
 
-Log "BOOT_WATCHDOG_STATUS API_8100=$api OPS_UI_3001=$ui DASH_8787=$dash ENGINE_COUNT=$engineCount RUNTIME_GUARD_COUNT=$guardCount PHASE5_AUTOGUARD_COUNT=$autoGuardCount AUTO_READY=$autoReady"
+Log "BOOT_WATCHDOG_STATUS API_8100=$api OPS_UI_3001=$ui DASH_8788=$dash ENGINE_COUNT=$engineCount RUNTIME_GUARD_COUNT=$guardCount PHASE5_AUTOGUARD_COUNT=$autoGuardCount AUTO_READY=$autoReady"
 Log "BOOT_WATCHDOG_END"

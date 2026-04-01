@@ -50,7 +50,7 @@ function Get-HealthActionClass([string[]]$Issues) {
         "HEALTH_SUMMARY_MISSING",
         "HEALTH_SUMMARY_INVALID_JSON",
         "API_8100_NOT_LISTENING",
-        "DASHBOARD_8787_NOT_LISTENING",
+        "DASHBOARD_8788_NOT_LISTENING",
         "ENGINE_NOT_ALIVE",
         "RUNTIME_NOT_ALIVE",
         "KILL_SWITCH_ACTIVE",
@@ -118,13 +118,13 @@ if (-not (Test-Path $healthPath)) {
 }
 
 $api8100 = Test-PortListening 8100
-$dash8787 = Test-PortListening 8787
+$dash8788 = Test-PortListening 8788
 if (-not $api8100) {
     $issues += "API_8100_NOT_LISTENING"
     $status = "FAIL"
 }
-if (-not $dash8787) {
-    $issues += "DASHBOARD_8787_NOT_LISTENING"
+if (-not $dash8788) {
+    $issues += "DASHBOARD_8788_NOT_LISTENING"
     $status = "FAIL"
 }
 
@@ -197,7 +197,7 @@ $payload = [ordered]@{
     issues = @($issues)
     health_path = $healthPath
     api_8100_listening = [bool]$api8100
-    dashboard_8787_listening = [bool]$dash8787
+    dashboard_8788_listening = [bool]$dash8788
     health_summary_age_sec = $healthAgeSec
     portfolio_snapshot_age_sec = $snapshotAgeSec
     engine_runtime_log_age_sec = $engineLogAgeSec

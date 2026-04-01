@@ -19,7 +19,7 @@ echo [1/3] Starting API Server (Port 8100)...
 start /MIN "NEXT-TRADE API Server" cmd /c "cd /d C:\next-trade-ver1.0 && set PYTHONPATH=C:\next-trade-ver1.0\src && .venv\Scripts\python.exe -m uvicorn next_trade.api.app:app --host 127.0.0.1 --port 8100"
 timeout /t 5 /nobreak >nul
 
-echo [2/3] Starting Dashboard Server (Port 8787)...
+echo [2/3] Starting Dashboard Server (Port 8788)...
 start /MIN "NEXT-TRADE Dashboard" cmd /c "cd /d C:\next-trade-ver1.0 && .venv\Scripts\python.exe tools\dashboard\multi5_dashboard_server.py"
 timeout /t 5 /nobreak >nul
 
@@ -34,7 +34,7 @@ echo ====================================
 echo.
 echo Services Status:
 echo - API Server: http://127.0.0.1:8100/api/v1/ops/health
-echo - Dashboard:  http://127.0.0.1:8787/api/runtime
+echo - Dashboard:  http://127.0.0.1:8788/api/runtime
 echo.
 echo To check running processes:
 echo tasklist | findstr python
@@ -55,7 +55,7 @@ powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:
 
 echo.
 echo [Dashboard Server Status]
-powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:8787/api/runtime' -UseBasicParsing -TimeoutSec 5; Write-Host 'Status: OK (StatusCode:' $response.StatusCode ')' } catch { Write-Host 'Status: FAILED -' $_.Exception.Message }"
+powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:8788/api/runtime' -UseBasicParsing -TimeoutSec 5; Write-Host 'Status: OK (StatusCode:' $response.StatusCode ')' } catch { Write-Host 'Status: FAILED -' $_.Exception.Message }"
 
 echo.
 echo [Running Python Processes]

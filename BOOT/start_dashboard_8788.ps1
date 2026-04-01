@@ -51,7 +51,7 @@ function Select-PreferredDashboardChain {
 $before = Get-DashboardProcesses
 $beforeRoots = @(Get-DashboardRootProcesses)
 $beforeChains = @(Get-DashboardProcessChains)
-$listenersBefore = @(Get-ListenerPidsByPort -Port 8787)
+$listenersBefore = @(Get-ListenerPidsByPort -Port 8788)
 
 if ($beforeChains.Count -gt 1) {
     $keepChain = Select-PreferredDashboardChain -Chains $beforeChains -ListenerPids $listenersBefore
@@ -69,7 +69,7 @@ if ($beforeChains.Count -gt 1) {
     $before = Get-DashboardProcesses
     $beforeRoots = @(Get-DashboardRootProcesses)
     $beforeChains = @(Get-DashboardProcessChains)
-    $listenersBefore = @(Get-ListenerPidsByPort -Port 8787)
+    $listenersBefore = @(Get-ListenerPidsByPort -Port 8788)
 }
 
 if ($listenersBefore.Count -eq 1 -and $before.Count -ge 1 -and $beforeRoots.Count -eq 1 -and $beforeChains.Count -eq 1) {
@@ -90,13 +90,13 @@ Start-Sleep -Seconds $WaitSec
 $after = Get-DashboardProcesses
 $afterRoots = @(Get-DashboardRootProcesses)
 $afterChains = @(Get-DashboardProcessChains)
-$listenersAfter = @(Get-ListenerPidsByPort -Port 8787)
+$listenersAfter = @(Get-ListenerPidsByPort -Port 8788)
 $apiStatus = 'ERROR'
 $selfProbeResults = @()
 try {
     for ($i = 1; $i -le $SelfProbeCount; $i++) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec $SelfProbeTimeoutSec
+        $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec $SelfProbeTimeoutSec
         $sw.Stop()
         $selfProbeResults += [pscustomobject]@{
             run = $i

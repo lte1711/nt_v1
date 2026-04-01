@@ -3,7 +3,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$startScript = 'C:\next-trade-ver1.0\BOOT\start_dashboard_8787.ps1'
+$startScript = 'C:\next-trade-ver1.0\BOOT\start_dashboard_8788.ps1'
 
 Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
@@ -18,7 +18,7 @@ for ($i = 0; $i -lt $SampleSeconds; $i++) {
     $rows = @(Get-CimInstance Win32_Process | Where-Object {
         $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
     } | Select-Object ProcessId, ParentProcessId, CommandLine)
-    $listeners = @(Get-NetTCPConnection -State Listen -LocalPort 8787 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique)
+    $listeners = @(Get-NetTCPConnection -State Listen -LocalPort 8788 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique)
     $timeline += [pscustomobject]@{
         sample_index = $i
         process_count = $rows.Count
@@ -32,7 +32,7 @@ for ($i = 0; $i -lt $SampleSeconds; $i++) {
 
 $apiStatus = 'ERROR'
 try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec 15
+    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec 15
     $apiStatus = [string][int]$resp.StatusCode
 } catch {
     $apiStatus = 'ERROR:' + $_.Exception.Message

@@ -12,7 +12,7 @@ $pythonExe = Join-Path $projectRoot "venv\Scripts\python.exe"
 $workerScript = Join-Path $projectRoot "tools\ops\profitmax_v1_runner.py"
 $workerLogPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl"
 $workerSummaryPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_summary.json"
-$dashboardRuntimeApi = "http://127.0.0.1:8787/api/runtime"
+$dashboardRuntimeApi = "http://127.0.0.1:8788/api/runtime"
 $guardLog = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "worker_watchdog_log.txt" -EnsureParent
 $endAt = (Get-Date).AddMinutes($ObserveMinutes)
 

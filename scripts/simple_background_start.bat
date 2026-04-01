@@ -15,7 +15,7 @@ echo Starting API Server (Port 8100)...
 start /B "" ".venv\Scripts\python.exe" -m uvicorn next_trade.api.app:app --host 127.0.0.1 --port 8100
 timeout /t 3 /nobreak >nul
 
-echo Starting Dashboard Server (Port 8787)...
+echo Starting Dashboard Server (Port 8788)...
 start /B "" ".venv\Scripts\python.exe" "tools\dashboard\multi5_dashboard_server.py"
 timeout /t 3 /nobreak >nul
 
@@ -28,7 +28,7 @@ echo All services started in background!
 echo.
 echo To check status:
 echo   - API Server: http://127.0.0.1:8100/api/v1/ops/health
-echo   - Dashboard: http://127.0.0.1:8787/api/runtime
+echo   - Dashboard: http://127.0.0.1:8788/api/runtime
 echo.
 echo To stop all services, run: taskkill /f /im python.exe
 echo.

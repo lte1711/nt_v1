@@ -1,7 +1,7 @@
 param(
     [string]$SnapshotPath = "C:\next-trade-ver1.0\logs\runtime\portfolio_metrics_snapshot.json",
     [string]$DashboardHtmlPath = "C:\next-trade-ver1.0\tools\dashboard\multi5_dashboard.html",
-    [string]$ApiUrl = "http://127.0.0.1:8787/api/runtime"
+    [string]$ApiUrl = "http://127.0.0.1:8788/api/runtime"
 )
 
 $ErrorActionPreference = "Stop"

@@ -908,9 +908,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 def run_server() -> None:
     ThreadingHTTPServer.allow_reuse_address = True
-    server = ThreadingHTTPServer(("127.0.0.1", 8787), DashboardHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", 8788), DashboardHandler)
     try:
-        print("MULTI5 dashboard listening on http://127.0.0.1:8787")
+        print("MULTI5 dashboard listening on http://127.0.0.1:8788")
         server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
         print("\nShutting down server...")

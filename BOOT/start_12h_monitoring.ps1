@@ -31,7 +31,7 @@ $baseline = [ordered]@{
     runtime_api = $null
 }
 try {
-    $baseline.runtime_api = Invoke-RestMethod -Uri "http://127.0.0.1:8787/api/runtime" -Method Get -TimeoutSec 10
+    $baseline.runtime_api = Invoke-RestMethod -Uri "http://127.0.0.1:8788/api/runtime" -Method Get -TimeoutSec 10
 } catch {
     $baseline.runtime_api = @{ error = "$_" }
 }

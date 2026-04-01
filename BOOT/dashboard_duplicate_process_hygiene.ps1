@@ -5,7 +5,7 @@
 $ErrorActionPreference = 'Stop'
 $projectRoot = 'C:\next-trade-ver1.0'
 $engineRoot = Join-Path $projectRoot 'NEXT-TRADE'
-$dashboardStartScript = Join-Path $projectRoot 'BOOT\start_dashboard_8787.ps1'
+$dashboardStartScript = Join-Path $projectRoot 'BOOT\start_dashboard_8788.ps1'
 
 $procs = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
@@ -36,10 +36,10 @@ if ($Execute) {
 $after = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
 })
-$listeners = @(Get-NetTCPConnection -State Listen -LocalPort 8787 -ErrorAction SilentlyContinue)
+$listeners = @(Get-NetTCPConnection -State Listen -LocalPort 8788 -ErrorAction SilentlyContinue)
 $apiStatus = 'ERROR'
 try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec 10
+    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec 10
     $apiStatus = [string][int]$resp.StatusCode
 } catch {
     $apiStatus = 'ERROR:' + $_.Exception.Message
@@ -52,7 +52,7 @@ try {
     stopped_pids = @($stopped) -join ','
     restarted = $started
     after_process_count = $after.Count
-    listener_count_8787 = $listeners.Count
-    listener_pids_8787 = (@($listeners | Select-Object -ExpandProperty OwningProcess -Unique) -join ',')
+    listener_count_8788 = $listeners.Count
+    listener_pids_8788 = (@($listeners | Select-Object -ExpandProperty OwningProcess -Unique) -join ',')
     api_status = $apiStatus
 } | ConvertTo-Json -Depth 4

@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 function Flag([bool]$v) { if ($v) { "YES" } else { "NO" } }
 
 $apiListen = [bool](netstat -ano | findstr ":8100" | findstr "LISTENING")
-$dashListen = [bool](netstat -ano | findstr ":8787" | findstr "LISTENING")
+$dashListen = [bool](netstat -ano | findstr ":8788" | findstr "LISTENING")
 
 $engine = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq "python.exe" -and $_.CommandLine -like "*run_multi5_engine.py*"
@@ -30,7 +30,7 @@ $scanCount = 0
 $scanTargetMet = $false
 $pnlRealtime = $false
 try {
-    $rt = Invoke-RestMethod -Uri "http://127.0.0.1:8787/api/runtime" -TimeoutSec 12
+    $rt = Invoke-RestMethod -Uri "http://127.0.0.1:8788/api/runtime" -TimeoutSec 12
     $runtimeApiOk = $true
     $runtimeAlive = [bool]$rt.runtime_alive
     try { $scanCount = [int]$rt.scan_symbol_count } catch { $scanCount = 0 }
@@ -42,7 +42,7 @@ $lines = @(
     "CHECK_TS_KST=$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))"
     "CHECK_SCOPE=REBOOT_PLUS_1M"
     "API_8100_LISTEN=" + (Flag $apiListen)
-    "DASHBOARD_8787_LISTEN=" + (Flag $dashListen)
+    "DASHBOARD_8788_LISTEN=" + (Flag $dashListen)
     "ENGINE_RUNNING=" + (Flag $engineAlive)
     "ENGINE_PID_LIST=$enginePids"
     "PHASE5_AUTOGUARD_RUNNING=" + (Flag $autoguardAlive)

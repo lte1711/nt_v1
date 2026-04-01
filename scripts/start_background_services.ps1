@@ -29,7 +29,7 @@ $SERVICES = @{
     "DASHBOARD_SERVER" = @{
         "Name" = "NEXT-TRADE Dashboard Server"
         "Command" = "tools\dashboard\multi5_dashboard_server.py"
-        "Port" = 8787
+        "Port" = 8788
         "Log" = "$LOG_DIR\dashboard_server.log"
         "PID" = "$LOG_DIR\dashboard_server.pid"
     }

@@ -5,7 +5,7 @@ $projectRoot = "C:\next-trade-ver1.0"
 $startEngineScript = Join-Path $projectRoot "BOOT\start_engine.ps1"
 $startRuntimeGuardScript = Join-Path $projectRoot "BOOT\start_runtime_guard.ps1"
 $startAutoguardScript = Join-Path $projectRoot "BOOT\start_phase5_autoguard.ps1"
-$startDashboardScript = Join-Path $projectRoot "BOOT\start_dashboard_8787.ps1"
+$startDashboardScript = Join-Path $projectRoot "BOOT\start_dashboard_8788.ps1"
 $postRebootProbeScript = Join-Path $projectRoot "BOOT\post_reboot_status_probe.ps1"
 $validateHealthScript = Join-Path $projectRoot "BOOT\validate_runtime_health_summary.ps1"
 $pruneWorkerLocksScript = Join-Path $projectRoot "BOOT\prune_stale_worker_locks.ps1"
@@ -108,8 +108,8 @@ if (-not (Wait-ForPortListening -Port 8100 -TimeoutSec 30)) {
     Write-Output "ENGINE_RESTART_API_8100=TIMEOUT"
     exit 1
 }
-if (-not (Wait-ForPortListening -Port 8787 -TimeoutSec 30)) {
-    Write-Output "ENGINE_RESTART_DASHBOARD_8787=TIMEOUT"
+if (-not (Wait-ForPortListening -Port 8788 -TimeoutSec 30)) {
+    Write-Output "ENGINE_RESTART_DASHBOARD_8788=TIMEOUT"
     exit 1
 }
 

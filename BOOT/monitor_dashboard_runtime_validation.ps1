@@ -52,8 +52,8 @@ function Measure-HttpJson([string]$Uri, [int]$TimeoutSec) {
 Log ("DASHBOARD_RUNTIME_VALIDATION_START interval_sec={0} observe_minutes={1} slow_threshold_ms={2}" -f $IntervalSec, $ObserveMinutes, $SlowRuntimeThresholdMs)
 
 while ((Get-Date) -lt $endAt) {
-    $rootCheck = Measure-HttpJson -Uri 'http://127.0.0.1:8787/' -TimeoutSec $ApiTimeoutSec
-    $runtimeCheck = Measure-HttpJson -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec $ApiTimeoutSec
+    $rootCheck = Measure-HttpJson -Uri 'http://127.0.0.1:8788/' -TimeoutSec $ApiTimeoutSec
+    $runtimeCheck = Measure-HttpJson -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec $ApiTimeoutSec
 
     $runtimeJson = $runtimeCheck.json
     $listenerCount = -1

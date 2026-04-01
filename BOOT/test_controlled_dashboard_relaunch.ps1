@@ -4,10 +4,10 @@ $ErrorActionPreference = 'Stop'
 $before = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
 })
-$beforeListeners = @(Get-NetTCPConnection -State Listen -LocalPort 8787 -ErrorAction SilentlyContinue)
+$beforeListeners = @(Get-NetTCPConnection -State Listen -LocalPort 8788 -ErrorAction SilentlyContinue)
 $beforeApi = 'ERROR'
 try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec 10
+    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec 10
     $beforeApi = [string][int]$resp.StatusCode
 } catch {
     $beforeApi = 'ERROR:' + $_.Exception.Message
@@ -19,10 +19,10 @@ Start-Sleep -Seconds 8
 $after = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
 })
-$afterListeners = @(Get-NetTCPConnection -State Listen -LocalPort 8787 -ErrorAction SilentlyContinue)
+$afterListeners = @(Get-NetTCPConnection -State Listen -LocalPort 8788 -ErrorAction SilentlyContinue)
 $afterApi = 'ERROR'
 try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec 15
+    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec 15
     $afterApi = [string][int]$resp.StatusCode
 } catch {
     $afterApi = 'ERROR:' + $_.Exception.Message

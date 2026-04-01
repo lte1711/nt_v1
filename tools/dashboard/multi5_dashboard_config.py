@@ -10,5 +10,5 @@ EVENT_LOG_PATH = RUNTIME_DIR / "profitmax_v1_events.jsonl"
 DAILY_PNL_PATH = RUNTIME_DIR / "daily_pnl_report.txt"
 
 HOST = "127.0.0.1"
-PORT = 8787
+PORT = 8788
 REFRESH_INTERVAL_SEC = 1

@@ -23,7 +23,7 @@ foreach ($line in $rows) {
         $ts = [datetime]::ParseExact($matches[1], 'yyyy-MM-ddTHH:mm:ss', $null)
         $msg = $matches[2]
         if ($ts -ge $cutoff) {
-            if ($msg -like '*START dashboard_8787*') { $dashboardStarts += $line }
+            if ($msg -like '*START dashboard_8788*') { $dashboardStarts += $line }
             if ($msg -like '*DASHBOARD_RESTART_COOLDOWN_ACTIVE*') { $cooldownEvents += $line }
         }
     }
@@ -34,7 +34,7 @@ $dashboardProcessCount = -1
 $dashboardListenerCount = -1
 $singleListenerHealth = $false
 try {
-    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8787/api/runtime' -TimeoutSec 10
+    $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec 10
     $apiStatus = [string][int]$resp.StatusCode
     $json = $resp.Content | ConvertFrom-Json
     $dashboardProcessCount = [int]$json.dashboard_process_count

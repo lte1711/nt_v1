@@ -7,7 +7,7 @@ $reportsDir = Join-Path $projectRoot "reports"
 
 function Get-ResetTargets {
     Get-CimInstance Win32_Process | Where-Object {
-        ($_.Name -eq "powershell.exe" -and $_.CommandLine -match "phase5_autoguard\.ps1|runtime_guard\.ps1|start_dashboard_8787\.ps1") -or
+        ($_.Name -eq "powershell.exe" -and $_.CommandLine -match "phase5_autoguard\.ps1|runtime_guard\.ps1|start_dashboard_8788\.ps1") -or
         ($_.Name -eq "python.exe" -and $_.CommandLine -match "run_multi5_engine\.py|profitmax_v1_runner\.py|multi5_dashboard_server\.py")
     }
 }

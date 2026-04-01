@@ -100,7 +100,7 @@ function List-BackgroundTasks {
     Write-Host "=== Port Status ===" -ForegroundColor Cyan
     Write-Host ""
     
-    $ports = @(8100, 8787)
+    $ports = @(8100, 8788)
     foreach ($port in $ports) {
         try {
             $connection = Test-NetConnection -ComputerName "127.0.0.1" -Port $port -WarningAction SilentlyContinue
