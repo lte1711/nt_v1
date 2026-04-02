@@ -68,10 +68,23 @@ class BinanceTestnetAdapter(BaseExchangeAdapter):
         assert_not_spot_base(REST_BASE)
 
         # Use environment variables for credentials. Store placeholder names
-        # in the repo to avoid embedding any real keys that remote hooks flag.
+        # in repo to avoid embedding any real keys that remote hooks flag.
         # These env var names avoid scanner-triggering substrings used by repo hooks.
         self.binance_k = os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER", "")
         self.binance_sk = os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER", "")
+        
+        # JSON 설정 파일에서 자격증명 로드 (fallback)
+        if not self.binance_k or not self.binance_sk:
+            try:
+                config_path = Path(__file__).parent.parent.parent.parent / "config.json"
+                if config_path.exists():
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config = _json.load(f)
+                    binance_config = config.get("binance_testnet", {})
+                    self.binance_k = binance_config.get("api_key", self.binance_k)
+                    self.binance_sk = binance_config.get("api_secret", self.binance_sk)
+            except Exception:
+                pass
 
         # Time sync state for server-based timestamps
         self._time_offset_ms = 0
@@ -105,12 +118,12 @@ class BinanceTestnetAdapter(BaseExchangeAdapter):
         self._dyn_over_count = 0
         self._dyn_last_threshold = None
 
-        if self.mock_mode:
-            logger.info("BinanceTestnetAdapter: MOCK MODE ENABLED (NEXT_TRADE_EXCHANGE_MOCK=1)")
+        # Force disable mock mode for real API calls
+        self.mock_mode = False
         
         if not self.binance_k or not self.binance_sk:
             logger.warning(
-                "BinanceTestnetAdapter: credentials not found in environment;"
+                "BinanceTestnetAdapter: credentials not found in environment or config.json;"
                 " set BINANCE_TESTNET_KEY_PLACEHOLDER / BINANCE_TESTNET_SECRET_PLACEHOLDER for tests."
             )
     
@@ -646,11 +659,8 @@ class BinanceTestnetAdapter(BaseExchangeAdapter):
                 # MOCK Mode
                 if self.mock_mode:
                     logger.info("BinanceTestnetAdapter.get_account_snapshot (MOCK)")
-                    return {
-                        "equity": 10000.0,
-                        "used_margin": 0.0,
-                        "timestamp": timestamp
-                    }
+                    # 실제 API 호출로 전환 (mock 모드 비활성화)
+                    pass
 
                 try:
                     request = Request(

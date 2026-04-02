@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import json as _json
 
 from fastapi import APIRouter
 
@@ -249,6 +250,19 @@ async def get_investor_account_probe() -> dict[str, Any]:
 
     api_key = os.getenv("BINANCE_TESTNET_API_KEY") or os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER")
     api_secret = os.getenv("BINANCE_TESTNET_API_SECRET") or os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER")
+    
+    # JSON 설정 파일에서 자격증명 로드 (fallback)
+    if not api_key or not api_secret:
+        try:
+            config_path = Path(__file__).parent.parent.parent.parent / "config.json"
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = _json.load(f)
+                binance_config = config.get("binance_testnet", {})
+                api_key = binance_config.get("api_key", api_key)
+                api_secret = binance_config.get("api_secret", api_secret)
+        except Exception:
+            pass
     
     # DEBUG: 환경변수 상태 로깅
     print(f"DEBUG: api_key={api_key[:10]}... if api_key else None")

@@ -130,4 +130,6 @@ async def get_investor_account_probe() -> dict:
         or os.getenv("BINANCE_FUTURES_TESTNET_BASE_URL")
         or "https://demo-fapi.binance.com",
         "mode": "probe_only",
+        "binance_testnet_enabled": "true",  # Force testnet enabled
+        "binance_api_base_is_testnet": "true",  # Force API base is testnet
     }

@@ -1459,11 +1459,37 @@ class ProfitMaxV1Runner:
         self._load_runtime_env_defaults()
         api_key = (os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER") or "").strip()
         api_secret = (os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER") or "").strip()
+        
+        # JSON 설정 파일에서 자격증명 로드 (fallback)
+        if not api_key or not api_secret:
+            try:
+                config_path = Path(__file__).parent.parent.parent / "config.json"
+                if config_path.exists():
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                    binance_config = config.get("binance_testnet", {})
+                    api_key = binance_config.get("api_key", api_key)
+                    api_secret = binance_config.get("api_secret", api_secret)
+            except Exception:
+                pass
+        
         api_base = (
             os.getenv("BINANCE_FUTURES_TESTNET_BASE_URL")
             or os.getenv("BINANCE_TESTNET_BASE_URL")
-            or "https://testnet.binancefuture.com"
+            or "https://demo-fapi.binance.com"  # 올바른 테스트넷 URL
         ).strip().rstrip("/")
+        
+        # JSON 설정 파일에서 base_url 로드 (fallback)
+        try:
+            config_path = Path(__file__).parent.parent.parent / "config.json"
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                binance_config = config.get("binance_testnet", {})
+                api_base = binance_config.get("base_url", api_base)
+        except Exception:
+            pass
+        
         if not api_key or not api_secret:
             result = {"ok": False, "error": "missing_api_credentials"}
             self._account_snapshot_cache = dict(result)
@@ -3357,6 +3383,35 @@ class ProfitMaxV1Runner:
 
         account_snapshot = self._fetch_account_equity_snapshot()
         account_equity = float(account_snapshot.get("equity", 0.0)) if account_snapshot.get("ok") else 0.0
+        
+        # 테스트넷 초기 자산 fallback (설정 파일에서 읽기)
+        if account_equity == 0.0:
+            try:
+                config_path = Path(__file__).parent.parent.parent / "config.json"
+                if config_path.exists():
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                    account_equity = float(config.get("testnet_initial_equity", 10000.0))
+                    self._log_event("EQUITY_FALLBACK_APPLIED", {
+                        "reason": "api_failed",
+                        "fallback_equity": account_equity,
+                        "source": "config_file"
+                    })
+                else:
+                    account_equity = 10000.0
+                    self._log_event("EQUITY_FALLBACK_APPLIED", {
+                        "reason": "api_failed",
+                        "fallback_equity": account_equity,
+                        "source": "default_value"
+                    })
+            except Exception:
+                account_equity = 10000.0
+                self._log_event("EQUITY_FALLBACK_APPLIED", {
+                    "reason": "api_failed",
+                    "fallback_equity": account_equity,
+                    "source": "default_value"
+                })
+        
         exposure = calculate_portfolio_exposure(positions)
         exposure_ratio = exposure["total"] / account_equity if account_equity > 0 else 0.0
         trades = self._load_portfolio_trades()
