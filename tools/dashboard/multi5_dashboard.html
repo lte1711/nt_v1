@@ -886,7 +886,7 @@ function applyUiClarifications() {
       const pad = { top: 16, right: 18, bottom: 28, left: 18 };
       const latestTs = new Date(values[values.length - 1].ts);
       const endMs = latestTs.getTime();
-      const startMs = endMs - (60 * 60 * 1000);
+      const startMs = endMs - (5 * 60 * 1000);
       const equities = values
         .map(p => Number(p.equity || 0))
         .filter(value => Number.isFinite(value) && value > 0);
@@ -920,7 +920,13 @@ function applyUiClarifications() {
       const labelY = Math.max(pad.top + 4, Math.min(height - pad.bottom - labelHeight - 4, current.y - labelHeight - 8));
       const path = coords.map((p, index) => `${index === 0 ? "M" : "L"} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" ");
       const areaPath = `${path} L ${coords[coords.length - 1].x.toFixed(2)} ${(height - pad.bottom).toFixed(2)} L ${coords[0].x.toFixed(2)} ${(height - pad.bottom).toFixed(2)} Z`;
-      const tickTimes = [startMs, startMs + (30 * 60 * 1000), endMs];
+      // 1분 단위로 표시 변경 (로직은 15초 단위 유지)
+      const tickCount = Math.min(6, values.length); // 최대 6개 틱, 1분 간격 표시
+      const tickTimes = [];
+      for (let i = 0; i < tickCount; i++) {
+        const ratio = i / (tickCount - 1);
+        tickTimes.push(startMs + ratio * (endMs - startMs));
+      }
 
       root.className = "";
       root.innerHTML = `
@@ -947,7 +953,7 @@ function applyUiClarifications() {
           <text x="${pad.left}" y="${height - pad.bottom - 6}" font-size="11" fill="#9bb0cf">${min.toFixed(2)} USDT</text>
         </svg>
         <div class="chart-legend">
-          <span class="legend-chip"><span class="legend-swatch" style="background:#38bdf8"></span>최근 1시간 ${values.length}포인트</span>
+          <span class="legend-chip"><span class="legend-swatch" style="background:#38bdf8"></span>최근 5분 ${values.length}포인트 (1분 간격)</span>
           <span class="legend-chip"><span class="legend-swatch" style="background:#22c55e"></span>현재 ${currentText}</span>
         </div>
       `;

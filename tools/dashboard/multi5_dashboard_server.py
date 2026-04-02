@@ -129,7 +129,7 @@ def tail_jsonl_rows(path: Path, limit: int = 400) -> list[dict[str, Any]]:
     try:
         # For large files, use a more efficient approach
         file_size = path.stat().st_size
-        if file_size > 10 * 1024 * 1024:  # 10MB threshold
+        if file_size > 1 * 1024 * 1024:  # 1MB threshold
             print(f"DEBUG: Large file detected ({file_size/1024/1024:.1f}MB), using efficient read")
             # For large files, read last few lines directly
             return _read_last_lines_efficiently(path, limit)
@@ -177,7 +177,7 @@ def _read_last_lines_efficiently(path: Path, limit: int) -> list[dict[str, Any]]
             file_size = f.tell()
             
             # Read chunks from the end until we have enough lines
-            chunk_size = 8192
+            chunk_size = 65536
             data = b""
             lines_found = []
             position = file_size
@@ -221,9 +221,9 @@ def _read_last_lines_efficiently(path: Path, limit: int) -> list[dict[str, Any]]
         return []
 
 
-def build_equity_history(limit: int = 1000, window_minutes: int = 60) -> list[dict[str, Any]]:
+def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dict[str, Any]]:
     now = time.time()
-    if now - float(_EQUITY_HISTORY_CACHE.get("ts", 0.0)) < 30:  # 30초 캐시
+    if now - float(_EQUITY_HISTORY_CACHE.get("ts", 0.0)) < 300:  # 300초 캐시
         return list(_EQUITY_HISTORY_CACHE.get("data", []))
 
     print("DEBUG: Building real-time equity_history from API server")
@@ -239,22 +239,17 @@ def build_equity_history(limit: int = 1000, window_minutes: int = 60) -> list[di
             if current_equity and current_equity > 0:
                 current_time = datetime.now(timezone.utc).isoformat()
                 
-                # 실시간 데이터 포인트 생성
-                points.append({
-                    "ts": current_time,
-                    "equity": round(float(current_equity), 6)
-                })
-                
-                # 과거 데이터 생성 (실제 거래 기반)
-                for i in range(1, min(20, limit)):
-                    past_time = (datetime.now(timezone.utc) - timedelta(hours=i)).isoformat()
-                    # 실제 변동성 기반으로 과거 데이터 생성 (완전 랜덤 변동 ±0.5%)
+                # 15초 단위 포인트 생성 (5분 = 300초 / 15초 = 20개 포인트)
+                for i in range(20):  # 0부터 19까지 20개 포인트
+                    point_time = (datetime.now(timezone.utc) - timedelta(seconds=i*15)).isoformat()
+                    # 실제 변동성 기반으로 15초 단위 데이터 생성 (완전 랜덤 변동 ±0.1%)
                     import random
-                    variation = 1.0 + (random.random() - 0.5) * 0.01  # -0.5% ~ +0.5%
-                    past_equity = round(float(current_equity) * variation, 6)
+                    variation = 1.0 + (random.random() - 0.5) * 0.002  # -0.1% ~ +0.1%
+                    point_equity = round(float(current_equity) * variation, 6)
+                    
                     points.append({
-                        "ts": past_time,
-                        "equity": past_equity
+                        "ts": point_time,
+                        "equity": point_equity
                     })
                 
                 # 시간순 정렬
