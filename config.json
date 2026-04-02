@@ -3,5 +3,6 @@
     "api_key": "ESxY6e4Lh17aUVe5lsGFQz0nXZaVdbwbwD15apjTGTWPMXyTvq0n2GPEqZiLrplY",
     "api_secret": "ll6wie0zfs8uNcL1Ch4lHGiuGlTo54koEqoAZPlmUxkmLgRZIFZcsPUE1vY2jVTU",
     "base_url": "https://demo-fapi.binance.com"
-  }
+  },
+  "testnet_initial_equity": 10119.13907373
 }

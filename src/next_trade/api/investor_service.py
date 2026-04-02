@@ -742,6 +742,94 @@ async def get_investor_positions_service() -> dict[str, Any]:
     return result
 
 
+async def get_investor_account_service() -> dict[str, Any]:
+    """계좌 자산 정보 가져오기"""
+    _load_runtime_env_defaults()
+    api_key = os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER", "").strip()
+    api_secret = os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER", "").strip()
+    
+    # JSON 설정 파일에서 자격증명 로드 (fallback)
+    if not api_key or not api_secret:
+        try:
+            config_path = Path(__file__).parent.parent.parent.parent / "config.json"
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                binance_config = config.get("binance_testnet", {})
+                api_key = binance_config.get("api_key", api_key)
+                api_secret = binance_config.get("api_secret", api_secret)
+        except Exception:
+            pass
+    
+    if not api_key or not api_secret:
+        return {
+            "ok": False,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "credentials_present": False,
+            "account_equity": "",
+            "binance_realtime_link_ok": False,
+            "binance_link_status": "NO_CREDENTIALS",
+            "api_base": _resolve_api_base(),
+            "error": "API credentials not found"
+        }
+    
+    try:
+        # 바이낸스 API 서버 시간 가져오기
+        server_time_ms = _get_binance_server_time()
+        
+        # 계좌 정보 API 호출
+        payload = _signed_get(
+            base_url=_resolve_api_base(),
+            api_key=api_key,
+            api_secret=api_secret,
+            path="/fapi/v2/account",
+            params={"timestamp": str(server_time_ms), "recvWindow": "5000"},
+        )
+        
+        if isinstance(payload, dict):
+            total_wallet_balance = float(payload.get("totalWalletBalance", "0"))
+            total_unrealized_pnl = float(payload.get("totalUnrealizedProfit", "0"))
+            total_margin_balance = float(payload.get("totalMarginBalance", "0"))
+            account_equity = total_margin_balance  # 계좌 자산 = 마진 잔고
+            
+            return {
+                "ok": True,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "credentials_present": True,
+                "account_equity": str(account_equity),
+                "total_wallet_balance": str(total_wallet_balance),
+                "total_unrealized_pnl": str(total_unrealized_pnl),
+                "total_margin_balance": str(total_margin_balance),
+                "binance_realtime_link_ok": True,
+                "binance_link_status": "TESTNET_REALTIME_LINKED",
+                "api_base": _resolve_api_base(),
+                "source": "binance_futures"
+            }
+        else:
+            return {
+                "ok": False,
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "credentials_present": True,
+                "account_equity": "",
+                "binance_realtime_link_ok": False,
+                "binance_link_status": "API_RESPONSE_ERROR",
+                "api_base": _resolve_api_base(),
+                "error": "Invalid API response format"
+            }
+            
+    except Exception as exc:
+        return {
+            "ok": False,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "credentials_present": True,
+            "account_equity": "",
+            "binance_realtime_link_ok": False,
+            "binance_link_status": "API_CALL_FAILED",
+            "api_base": _resolve_api_base(),
+            "error": str(exc)
+        }
+
+
 async def post_investor_order_service(payload: dict[str, Any]) -> dict[str, Any]:
     _load_runtime_env_defaults()
     order = _normalize_order_payload(payload)

@@ -110,26 +110,3 @@ def _load_runtime_env_defaults() -> None:
         return
 
 
-@app.get("/api/investor/account")
-async def get_investor_account_probe() -> dict:
-    # 1. 환경변수에서 시도
-    api_key = os.getenv("BINANCE_TESTNET_API_KEY") or os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER")
-    api_secret = os.getenv("BINANCE_TESTNET_API_SECRET") or os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER")
-    
-    # 2. JSON 설정 파일에서 직접 읽기 (최종 해결책)
-    if not api_key or not api_secret:
-        config = _load_config_from_json()
-        api_key = config.get("api_key", api_key)
-        api_secret = config.get("api_secret", api_secret)
-    
-    return {
-        "ok": True,
-        "ts": datetime.now(timezone.utc).isoformat(),
-        "credentials_present": bool(api_key and api_secret),
-        "api_base": os.getenv("BINANCE_TESTNET_BASE_URL")
-        or os.getenv("BINANCE_FUTURES_TESTNET_BASE_URL")
-        or "https://demo-fapi.binance.com",
-        "mode": "probe_only",
-        "binance_testnet_enabled": "true",  # Force testnet enabled
-        "binance_api_base_is_testnet": "true",  # Force API base is testnet
-    }
