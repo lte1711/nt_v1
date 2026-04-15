@@ -4,8 +4,9 @@
 $ErrorActionPreference = "Stop"
 
 # PATH CONFIG
-$bootRoot     = Split-Path -Parent $PSScriptRoot
+$bootRoot     = $PSScriptRoot
 $projectRoot  = Split-Path -Parent $bootRoot
+. (Join-Path $bootRoot "common_process_helpers.ps1")
 $pythonExe    = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $engineScript = Join-Path $projectRoot "tools\multi5\run_multi5_engine.py"
 
@@ -20,12 +21,12 @@ $launchCooldownSec    = 120
 
 function Get-EngineProcesses {
     try {
-        $processes = Get-CimInstance Win32_Process | Where-Object {
+        $processes = @(Get-CimInstance Win32_Process | Where-Object {
             $_.Name -eq "python.exe" -and
             $_.CommandLine -ne $null -and
             $_.CommandLine -match "run_multi5_engine\.py"
-        }
-        return @($processes)
+        })
+        return @(Get-RootProcessesFromSet -Processes $processes)
     } catch {
         Write-Warning "PROCESS_DETECTION_ERROR: $_"
         return @()
@@ -45,7 +46,7 @@ function Stop-DuplicateEngineRoots([array]$processes) {
     foreach ($proc in $drop) {
         try {
             Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
-            Write-Output "ENGINE_DUPLICATE_ROOT_STOPPED_PID=$($proc.ProcessId)"
+            Write-Host "ENGINE_DUPLICATE_ROOT_STOPPED_PID=$($proc.ProcessId)"
         } catch {
             Write-Warning "ENGINE_DUPLICATE_ROOT_STOP_FAILED_PID=$($proc.ProcessId)"
         }
