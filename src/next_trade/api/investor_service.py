@@ -150,6 +150,28 @@ def _client_order_id_from_trace(trace_id: str) -> str:
 
 
 def _normalize_order_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    action = str(payload.get("action", "")).strip().lower()
+    if action == "cancel_protection_orders":
+        symbol = str(payload.get("symbol", "")).upper().strip()
+        client_order_ids = [
+            str(value).strip()
+            for value in (payload.get("client_order_ids") or [])
+            if str(value).strip()
+        ]
+        if not symbol:
+            raise HTTPException(status_code=422, detail="symbol is required for cancel_protection_orders")
+        if not client_order_ids:
+            raise HTTPException(status_code=422, detail="client_order_ids are required for cancel_protection_orders")
+        trace_id = str(payload.get("trace_id") or f"inv-{uuid.uuid4().hex[:12]}")
+        return {
+            "action": action,
+            "trace_id": trace_id,
+            "symbol": symbol,
+            "client_order_ids": client_order_ids,
+            "profile": str(payload.get("profile", "TESTNET_INTRADAY_SCALP")).strip() or "TESTNET_INTRADAY_SCALP",
+            "dry_run": bool(payload.get("dry_run", False)),
+        }
+
     symbol = str(payload.get("symbol", "")).upper().strip()
     side = str(payload.get("side", "")).upper().strip()
     order_type = str(payload.get("type", "MARKET")).upper().strip() or "MARKET"
@@ -157,33 +179,60 @@ def _normalize_order_payload(payload: dict[str, Any]) -> dict[str, Any]:
     profile = str(payload.get("profile", "TESTNET_INTRADAY_SCALP")).strip() or "TESTNET_INTRADAY_SCALP"
     reduce_only = bool(payload.get("reduceOnly", False))
     dry_run = bool(payload.get("dry_run", False))
+    close_position = bool(payload.get("closePosition", False))
+    stop_price_raw = payload.get("stopPrice", payload.get("stop_price"))
+    working_type = str(payload.get("workingType", payload.get("working_type", "MARK_PRICE"))).upper().strip() or "MARK_PRICE"
 
-    try:
-        quantity = float(quantity_raw)
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=422, detail="quantity must be a positive number")
+    quantity = 0.0
+    if quantity_raw not in (None, ""):
+        try:
+            quantity = float(quantity_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="quantity must be a positive number")
 
     if not symbol:
         raise HTTPException(status_code=422, detail="symbol is required")
     if side not in {"BUY", "SELL"}:
         raise HTTPException(status_code=422, detail="side must be BUY or SELL")
-    if quantity <= 0:
+    if quantity <= 0 and not close_position:
         raise HTTPException(status_code=422, detail="quantity must be positive")
-    if order_type not in {"MARKET", "LIMIT"}:
-        raise HTTPException(status_code=422, detail="type must be MARKET or LIMIT")
+    if order_type not in {"MARKET", "LIMIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+        raise HTTPException(status_code=422, detail="type must be MARKET, LIMIT, STOP_MARKET, or TAKE_PROFIT_MARKET")
+    stop_price = None
+    if order_type in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+        try:
+            stop_price = float(stop_price_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="stopPrice must be a positive number")
+        if stop_price <= 0:
+            raise HTTPException(status_code=422, detail="stopPrice must be positive")
+        if working_type not in {"MARK_PRICE", "CONTRACT_PRICE"}:
+            raise HTTPException(status_code=422, detail="workingType must be MARK_PRICE or CONTRACT_PRICE")
 
     base_url = _resolve_api_base()
     trace_id = str(payload.get("trace_id") or f"inv-{uuid.uuid4().hex[:12]}")
     quantity_before_normalize = quantity
-    quantity, normalization_meta = _normalize_quantity_for_symbol(
-        base_url=base_url,
-        symbol=symbol,
-        order_type=order_type,
-        quantity=quantity,
-        reduce_only=reduce_only,
-    )
+    if close_position:
+        normalization_meta = {
+            "step_size": 0.0,
+            "min_qty": 0.0,
+            "min_notional": 0.0,
+            "estimated_price": None,
+            "estimated_notional": None,
+            "adjusted": False,
+            "min_notional_guard_applied": False,
+        }
+    else:
+        quantity, normalization_meta = _normalize_quantity_for_symbol(
+            base_url=base_url,
+            symbol=symbol,
+            order_type=order_type,
+            quantity=quantity,
+            reduce_only=reduce_only,
+        )
 
     return {
+        "action": "submit_order",
         "trace_id": trace_id,
         "clientOrderId": _client_order_id_from_trace(trace_id),
         "symbol": symbol,
@@ -194,6 +243,9 @@ def _normalize_order_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "profile": profile,
         "dry_run": dry_run,
         "price": payload.get("price"),
+        "stopPrice": stop_price,
+        "closePosition": close_position,
+        "workingType": working_type,
         "quantity_before_normalize": quantity_before_normalize,
         "normalization_meta": normalization_meta,
     }
@@ -343,20 +395,124 @@ def _build_submit_payload(
         "symbol": order["symbol"],
         "side": order["side"],
         "type": order["type"],
-        "quantity": f"{order['quantity']}",
         "newClientOrderId": order["clientOrderId"],
         "timestamp": str(timestamp_ms),
         "recvWindow": "5000",
     }
-    if order["reduceOnly"]:
+    if not order.get("closePosition"):
+        params["quantity"] = f"{order['quantity']}"
+    if order["reduceOnly"] and not order.get("closePosition"):
         params["reduceOnly"] = "true"
         if position_side != "BOTH":
             # Hedge mode exits must declare which side is being reduced.
             params["positionSide"] = "LONG" if order["side"] == "SELL" else "SHORT"
+    elif order.get("closePosition"):
+        params["closePosition"] = "true"
+        if position_side != "BOTH":
+            params["positionSide"] = "LONG" if order["side"] == "SELL" else "SHORT"
     if order["type"] == "LIMIT":
         params["timeInForce"] = "GTC"
         params["price"] = f"{price_value}"
+    elif order["type"] in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+        params["stopPrice"] = f"{float(order['stopPrice'])}"
+        params["workingType"] = order.get("workingType", "MARK_PRICE")
     return params
+
+
+def _signed_delete(
+    *,
+    base_url: str,
+    api_key: str,
+    api_secret: str,
+    path: str,
+    params: dict[str, str],
+) -> dict[str, Any]:
+    query_string = urlencode(params)
+    signature = hmac.new(
+        api_secret.encode("utf-8"),
+        query_string.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    url = f"{base_url}{path}?{query_string}&signature={signature}"
+    response = requests.delete(
+        url,
+        headers={"X-MBX-APIKEY": api_key},
+        timeout=10,
+    )
+    if response.status_code >= 400:
+        exchange_code, exchange_msg = _parse_exchange_error(response.text)
+        raise HTTPException(
+            status_code=response.status_code,
+            detail={
+                "status": response.status_code,
+                "exchange_code": exchange_code,
+                "exchange_msg": exchange_msg,
+                "body": response.text[:300],
+            },
+        )
+    return response.json()
+
+
+def _cancel_testnet_protection_orders(order: dict[str, Any]) -> dict[str, Any]:
+    api_key = os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER", "").strip()
+    api_secret = os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER", "").strip()
+    if not api_key or not api_secret:
+        raise HTTPException(status_code=400, detail="testnet credentials missing")
+
+    base_url = _resolve_api_base()
+    if order["dry_run"]:
+        return {
+            "ok": True,
+            "dry_run": True,
+            "symbol": order["symbol"],
+            "trace_id": order["trace_id"],
+            "cancelled_client_order_ids": list(order["client_order_ids"]),
+            "results": [],
+        }
+
+    results: list[dict[str, Any]] = []
+    for client_order_id in order["client_order_ids"]:
+        try:
+            server_time_ms = _get_binance_server_time()
+            payload = _signed_delete(
+                base_url=base_url,
+                api_key=api_key,
+                api_secret=api_secret,
+                path="/fapi/v1/order",
+                params={
+                    "symbol": order["symbol"],
+                    "origClientOrderId": client_order_id,
+                    "timestamp": str(server_time_ms),
+                    "recvWindow": "5000",
+                },
+            )
+            results.append(
+                {
+                    "client_order_id": client_order_id,
+                    "ok": True,
+                    "status": payload.get("status"),
+                    "exchange_order_id": payload.get("orderId"),
+                }
+            )
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
+            results.append(
+                {
+                    "client_order_id": client_order_id,
+                    "ok": False,
+                    "status": detail.get("status"),
+                    "exchange_code": detail.get("exchange_code"),
+                    "exchange_msg": detail.get("exchange_msg"),
+                }
+            )
+
+    return {
+        "ok": True,
+        "symbol": order["symbol"],
+        "trace_id": order["trace_id"],
+        "cancelled_client_order_ids": list(order["client_order_ids"]),
+        "results": results,
+    }
 
 
 def _parse_exchange_error(body: str) -> tuple[int | None, str]:
@@ -833,6 +989,21 @@ async def get_investor_account_service() -> dict[str, Any]:
 async def post_investor_order_service(payload: dict[str, Any]) -> dict[str, Any]:
     _load_runtime_env_defaults()
     order = _normalize_order_payload(payload)
+    if order.get("action") == "cancel_protection_orders":
+        result = _cancel_testnet_protection_orders(order)
+        _append_jsonl(
+            _runtime_event_path(),
+            {
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "event_type": "ORDER_API_CANCEL_PROTECTION",
+                "trace_id": order["trace_id"],
+                "symbol": order["symbol"],
+                "client_order_ids": list(order["client_order_ids"]),
+                "result_count": len(result.get("results", [])),
+                "dry_run": order["dry_run"],
+            },
+        )
+        return result
     audit_row = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "event_type": "ORDER_API_REQUEST",
@@ -841,6 +1012,9 @@ async def post_investor_order_service(payload: dict[str, Any]) -> dict[str, Any]
         "symbol": order["symbol"],
         "side": order["side"],
         "quantity": order["quantity"],
+        "type": order["type"],
+        "closePosition": order["closePosition"],
+        "stopPrice": order["stopPrice"],
         "reduceOnly": order["reduceOnly"],
         "profile": order["profile"],
         "dry_run": order["dry_run"],

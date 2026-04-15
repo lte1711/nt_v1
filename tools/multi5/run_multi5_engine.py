@@ -187,6 +187,77 @@ def collect_signal_target_symbols(
     return {symbol for symbol in targets if symbol}
 
 
+def recover_missing_position_workers(
+    *,
+    open_position_symbols: set[str],
+    worker_symbols: set[str],
+    state_by_symbol: dict[str, dict[str, Any]],
+    engine_session_hours: float,
+    max_position_per_symbol: int,
+    launch_cooldown_sec: int,
+    last_launch_at: dict[str, datetime],
+) -> tuple[list[str], list[str]]:
+    missing_symbols = sorted(
+        symbol
+        for symbol in open_position_symbols
+        if symbol and symbol not in worker_symbols
+    )
+    launched_symbols: list[str] = []
+    launched_strategy_units: list[str] = []
+    now = utc_now()
+
+    for symbol in missing_symbols:
+        prev = last_launch_at.get(symbol)
+        if prev is not None and (now - prev).total_seconds() < launch_cooldown_sec:
+            continue
+
+        row = state_by_symbol.get(symbol, {})
+        strategy_id = str(row.get("strategy_id", "")).strip() or "momentum_intraday_v1"
+        strategy_unit = str(row.get("strategy_unit", "")).strip() or "BALANCED_INTRADAY_MOMENTUM"
+        strategy_signal = str(row.get("strategy_signal", "HOLD")).upper().strip()
+        strategy_signal_score = float(row.get("strategy_signal_score", 0.0) or 0.0)
+        edge_score = float(row.get("edge_score", 0.0) or 0.0)
+        base_edge_score = float(row.get("base_edge_score", edge_score) or edge_score)
+        take_profit_pct = float(row.get("take_profit_pct", 0.012) or 0.012)
+        stop_loss_pct = float(row.get("stop_loss_pct", 0.006) or 0.006)
+        signal_path = strategy_signal_path(symbol, strategy_id)
+
+        write_json(
+            signal_path,
+            {
+                "ts": now.isoformat(),
+                "symbol": symbol,
+                "strategy_id": strategy_id,
+                "strategy_unit": strategy_unit,
+                "strategy_signal": strategy_signal,
+                "strategy_signal_score": strategy_signal_score,
+                "edge_score": edge_score,
+                "base_edge_score": base_edge_score,
+                "roc_10": float(row.get("roc_10", 0.0) or 0.0),
+                "rsi_14": float(row.get("rsi_14", 0.0) or 0.0),
+                "sma_20": float(row.get("sma_20", 0.0) or 0.0),
+                "close": float(row.get("close", 0.0) or 0.0),
+                "volume_ratio": float(row.get("volume_ratio", 0.0) or 0.0),
+                "take_profit_pct": take_profit_pct,
+                "stop_loss_pct": stop_loss_pct,
+            },
+        )
+        run_engine(
+            symbol,
+            session_hours=engine_session_hours,
+            max_positions=max_position_per_symbol,
+            strategy_unit=strategy_unit,
+            strategy_signal_path_value=signal_path,
+            take_profit_pct=take_profit_pct,
+            stop_loss_pct=stop_loss_pct,
+        )
+        last_launch_at[symbol] = now
+        launched_symbols.append(symbol)
+        launched_strategy_units.append(strategy_id)
+
+    return launched_symbols, launched_strategy_units
+
+
 def read_recent_jsonl_rows(path: Path, *, max_bytes: int = 1048576, max_rows: int = 2000) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -326,14 +397,29 @@ def run_loop(
                 worker_symbols = parse_worker_symbols(worker_rows)
                 active_symbols = set(open_position_symbols).union(worker_symbols)
 
-        entry_attempted = False
-        launched_symbols: list[str] = []
-        launched_strategy_units: list[str] = []
         state_by_symbol = {
             str(row.get("symbol", "")).upper().strip(): row
             for row in states
             if isinstance(row, dict) and row.get("symbol")
         }
+        entry_attempted = False
+        launched_symbols: list[str] = []
+        launched_strategy_units: list[str] = []
+        recovered_symbols, recovered_strategy_units = recover_missing_position_workers(
+            open_position_symbols=open_position_symbols,
+            worker_symbols=worker_symbols,
+            state_by_symbol=state_by_symbol,
+            engine_session_hours=engine_session_hours,
+            max_position_per_symbol=max_position_per_symbol,
+            launch_cooldown_sec=launch_cooldown_sec,
+            last_launch_at=last_launch_at,
+        )
+        if recovered_symbols:
+            worker_symbols.update(recovered_symbols)
+            active_symbols = set(open_position_symbols).union(worker_symbols)
+            launched_symbols.extend(recovered_symbols)
+            launched_strategy_units.extend(recovered_strategy_units)
+            entry_attempted = True
         for signal_symbol in sorted(signal_target_symbols):
             row = state_by_symbol.get(signal_symbol)
             if not row:
@@ -423,6 +509,7 @@ def run_loop(
                 "engine_entry_attempted": entry_attempted,
                 "launched_symbols": launched_symbols,
                 "launched_strategy_units": launched_strategy_units,
+                "recovered_position_symbols": recovered_symbols,
                 "api_server_reachable": api_server_reachable,
                 "active_symbol_count": len(active_symbols),
                 "active_symbols": sorted(active_symbols),

@@ -80,6 +80,18 @@ function Ensure-Guards {
     } catch {
         Write-Warning "AUTOGUARD_FAILED: $_"
     }
+
+    try {
+        $workerGuard = Get-CimInstance Win32_Process | Where-Object {
+            $_.CommandLine -like "*worker_watchdog.ps1*"
+        }
+        if (-not $workerGuard) {
+            & (Join-Path $bootRoot "start_worker_watchdog.ps1")
+            Write-Output "WORKER_WATCHDOG_STARTED"
+        }
+    } catch {
+        Write-Warning "WORKER_WATCHDOG_FAILED: $_"
+    }
 }
 
 $mutexName = "Global\NextTrade_Engine_Start"

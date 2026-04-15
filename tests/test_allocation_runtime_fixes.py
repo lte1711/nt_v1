@@ -25,6 +25,7 @@ from tools.multi5.run_multi5_engine import (  # noqa: E402
     apply_symbol_diversity_penalty,
     collect_signal_target_symbols,
     collect_recent_blocked_symbols,
+    recover_missing_position_workers,
 )
 from tools.multi5.multi5_symbol_ranker import select_top_one  # noqa: E402
 from tools.multi5.multi5_symbol_scanner import build_symbol_state  # noqa: E402
@@ -146,6 +147,68 @@ class AllocationRuntimeFixTests(unittest.TestCase):
         )
 
         self.assertEqual(targets, {"DOGEUSDT", "QUICKUSDT", "VOXELUSDT", "BCHUSDT"})
+
+    def test_recover_missing_position_workers_launches_for_open_positions_without_workers(self) -> None:
+        launches: list[dict[str, object]] = []
+        writes: list[Path] = []
+        now = datetime.now(timezone.utc)
+
+        def fake_write_json(path: Path, payload: dict) -> None:
+            writes.append(path)
+
+        def fake_run_engine(
+            symbol: str,
+            session_hours: float,
+            max_positions: int,
+            *,
+            strategy_unit: str,
+            strategy_signal_path_value: Path,
+            take_profit_pct: float,
+            stop_loss_pct: float,
+        ) -> None:
+            launches.append(
+                {
+                    "symbol": symbol,
+                    "session_hours": session_hours,
+                    "max_positions": max_positions,
+                    "strategy_unit": strategy_unit,
+                    "strategy_signal_path": strategy_signal_path_value,
+                    "take_profit_pct": take_profit_pct,
+                    "stop_loss_pct": stop_loss_pct,
+                }
+            )
+
+        with patch("tools.multi5.run_multi5_engine.write_json", fake_write_json), patch(
+            "tools.multi5.run_multi5_engine.run_engine",
+            fake_run_engine,
+        ):
+            launched_symbols, launched_strategy_units = recover_missing_position_workers(
+                open_position_symbols={"ETHUSDT", "DOGEUSDT"},
+                worker_symbols={"DOGEUSDT"},
+                state_by_symbol={
+                    "ETHUSDT": {
+                        "symbol": "ETHUSDT",
+                        "strategy_id": "momentum_intraday_v1",
+                        "strategy_unit": "BALANCED_INTRADAY_MOMENTUM",
+                        "strategy_signal": "SHORT",
+                        "strategy_signal_score": 0.71,
+                        "edge_score": 1.33,
+                        "take_profit_pct": 0.02,
+                        "stop_loss_pct": 0.01,
+                    }
+                },
+                engine_session_hours=2.0,
+                max_position_per_symbol=1,
+                launch_cooldown_sec=120,
+                last_launch_at={"DOGEUSDT": now},
+            )
+
+        self.assertEqual(launched_symbols, ["ETHUSDT"])
+        self.assertEqual(launched_strategy_units, ["momentum_intraday_v1"])
+        self.assertEqual(len(launches), 1)
+        self.assertEqual(launches[0]["symbol"], "ETHUSDT")
+        self.assertEqual(launches[0]["strategy_unit"], "BALANCED_INTRADAY_MOMENTUM")
+        self.assertEqual(len(writes), 1)
 
     def test_trade_outcome_payload_preserves_raw_pnl_precision(self) -> None:
         normalized = _normalize_trade_outcome_payload(

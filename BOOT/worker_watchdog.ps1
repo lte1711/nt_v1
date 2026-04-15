@@ -8,7 +8,10 @@ $ErrorActionPreference = "Continue"
 . "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
 $projectRoot = "C:\nt_v1"
-$pythonExe = Join-Path $projectRoot "venv\Scripts\python.exe"
+$pythonExe = Join-Path $projectRoot ".venv\Scripts\python.exe"
+if (-not (Test-Path $pythonExe)) {
+    $pythonExe = Join-Path $projectRoot "venv\Scripts\python.exe"
+}
 $workerScript = Join-Path $projectRoot "tools\ops\profitmax_v1_runner.py"
 $workerLogPath = "C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl"
 $workerSummaryPath = "C:\nt_v1\logs\runtime\profitmax_v1_summary.json"
@@ -51,33 +54,37 @@ function Get-WorkerLogAgeSec {
     }
 }
 
-function Resolve-Symbol {
+function Resolve-RecoverySymbols {
+    try {
+        $resp = Invoke-RestMethod -Uri "http://127.0.0.1:8100/api/v1/investor/positions" -Method Get -TimeoutSec 10
+        $symbols = @(
+            $resp.positions |
+            Where-Object {
+                $_.symbol -and ([math]::Abs([double]($_.positionAmt)) -gt 0)
+            } |
+            ForEach-Object { [string]$_.symbol }
+        )
+        if ($symbols.Count -gt 0) {
+            return @($symbols | Select-Object -Unique)
+        }
+    } catch {}
+
     try {
         $snap = Invoke-RestMethod -Uri $dashboardRuntimeApi -Method Get -TimeoutSec 10
         if ($snap.position_status -eq "OPEN" -and $snap.current_position_symbol -and $snap.current_position_symbol -ne "-") {
-            return [string]$snap.current_position_symbol
+            return @([string]$snap.current_position_symbol)
         }
         if ($snap.current_selected_symbol -and $snap.current_selected_symbol -ne "-") {
-            return [string]$snap.current_selected_symbol
+            return @([string]$snap.current_selected_symbol)
         }
         if ($snap.selected_symbol -and $snap.selected_symbol -ne "-") {
-            return [string]$snap.selected_symbol
+            return @([string]$snap.selected_symbol)
         }
     } catch {}
-    return "BTCUSDT"
+    return @("BTCUSDT")
 }
 
 function Restart-Worker([string]$symbol) {
-    $workers = Get-Workers
-    if ($workers.Count -gt 0) {
-        $pids = ($workers | Select-Object -ExpandProperty ProcessId) -join ","
-        Write-GuardLog "STALE_OR_MISSING_WORKER kill_old_pids=$pids"
-        foreach ($w in $workers) {
-            try { Stop-Process -Id $w.ProcessId -Force } catch {}
-        }
-        Start-Sleep -Seconds 2
-    }
-
     $args = @(
         "`"$workerScript`"",
         "--profile", "TESTNET_INTRADAY_SCALP",
@@ -110,13 +117,22 @@ while ((Get-Date) -lt $endAt) {
     $logAge = Get-WorkerLogAgeSec
 
     if ($workers.Count -eq 0) {
-        $symbol = Resolve-Symbol
-        Write-GuardLog "WORKER_MISSING log_age_sec=$logAge symbol=$symbol"
-        Restart-Worker -symbol $symbol
+        $symbols = @(Resolve-RecoverySymbols)
+        Write-GuardLog "WORKER_MISSING log_age_sec=$logAge symbols=$($symbols -join ',')"
+        foreach ($symbol in $symbols) {
+            Restart-Worker -symbol $symbol
+        }
     } elseif ($logAge -gt $StaleSec) {
-        $symbol = Resolve-Symbol
-        Write-GuardLog "WORKER_STALE log_age_sec=$logAge symbol=$symbol"
-        Restart-Worker -symbol $symbol
+        $symbols = @(Resolve-RecoverySymbols)
+        $pids = ($workers | Select-Object -ExpandProperty ProcessId) -join ","
+        Write-GuardLog "WORKER_STALE log_age_sec=$logAge symbols=$($symbols -join ',') kill_old_pids=$pids"
+        foreach ($w in $workers) {
+            try { Stop-Process -Id $w.ProcessId -Force } catch {}
+        }
+        Start-Sleep -Seconds 2
+        foreach ($symbol in $symbols) {
+            Restart-Worker -symbol $symbol
+        }
     } else {
         $pids = ($workers | Select-Object -ExpandProperty ProcessId) -join ","
         Write-GuardLog "WORKER_OK pids=$pids log_age_sec=$logAge"

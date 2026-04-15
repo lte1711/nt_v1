@@ -1,6 +1,7 @@
 ﻿$ErrorActionPreference = "Stop"
 
-$scriptPath = "C:\nt_v1\BOOT\worker_watchdog.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$scriptPath = Join-Path $projectRoot "BOOT\worker_watchdog.ps1"
 
 $existing = Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq "powershell.exe" -and

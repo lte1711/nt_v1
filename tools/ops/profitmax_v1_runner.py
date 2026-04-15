@@ -1260,6 +1260,115 @@ class ProfitMaxV1Runner:
                 return body
             raise
 
+    def _submit_position_protection_orders(self) -> dict[str, Any] | None:
+        if self.position is None or bool(self.config.dry_run):
+            return None
+
+        side = str(self.position.get("side", "BUY")).upper().strip()
+        entry_price = float(self.position.get("entry_price", 0.0) or 0.0)
+        tp_pct = float(self.position.get("tp_pct", 0.0) or 0.0)
+        sl_pct = float(self.position.get("sl_pct", 0.0) or 0.0)
+        if entry_price <= 0.0 or tp_pct <= 0.0 or sl_pct <= 0.0:
+            return None
+
+        exit_side = "SELL" if side == "BUY" else "BUY"
+        if side == "BUY":
+            tp_price = entry_price * (1.0 + tp_pct)
+            sl_price = entry_price * (1.0 - sl_pct)
+        else:
+            tp_price = entry_price * (1.0 - tp_pct)
+            sl_price = entry_price * (1.0 + sl_pct)
+
+        trace_base = str(self.position.get("trace_id") or f"protect-{uuid.uuid4().hex[:12]}")
+        orders = [
+            ("tp", "TAKE_PROFIT_MARKET", round(tp_price, 6), f"{trace_base}-tp"),
+            ("sl", "STOP_MARKET", round(sl_price, 6), f"{trace_base}-sl"),
+        ]
+
+        results: list[dict[str, Any]] = []
+        client_order_ids: list[str] = []
+        for label, order_type, stop_price, trace_id in orders:
+            payload = {
+                "symbol": self.config.symbol,
+                "side": exit_side,
+                "type": order_type,
+                "closePosition": True,
+                "stopPrice": stop_price,
+                "workingType": "MARK_PRICE",
+                "profile": self.config.profile,
+                "trace_id": trace_id,
+            }
+            result = self._http_post("/api/investor/order", payload, timeout=12)
+            result = result if isinstance(result, dict) else {"ok": False, "status": "UNKNOWN"}
+            result["label"] = label
+            result["stopPrice"] = stop_price
+            results.append(result)
+            client_order_id = str(result.get("client_order_id") or result.get("clientOrderId") or "").strip()
+            if client_order_id:
+                client_order_ids.append(client_order_id)
+
+        protection_state = {
+            "exit_side": exit_side,
+            "tp_price": round(tp_price, 6),
+            "sl_price": round(sl_price, 6),
+            "client_order_ids": client_order_ids,
+            "results": results,
+        }
+        self.position["protection_orders"] = protection_state
+        self._log_event(
+            "POSITION_PROTECTION_ORDERS_PLACED",
+            {
+                "symbol": self.config.symbol,
+                "side": side,
+                "exit_side": exit_side,
+                "tp_price": round(tp_price, 6),
+                "sl_price": round(sl_price, 6),
+                "client_order_ids": client_order_ids,
+                "result_count": len(results),
+            },
+        )
+        return protection_state
+
+    def _cancel_position_protection_orders(self) -> None:
+        if self.position is None:
+            return
+        protection = self.position.get("protection_orders")
+        if not isinstance(protection, dict):
+            return
+        client_order_ids = [
+            str(value).strip()
+            for value in (protection.get("client_order_ids") or [])
+            if str(value).strip()
+        ]
+        if not client_order_ids:
+            return
+        payload = {
+            "action": "cancel_protection_orders",
+            "symbol": self.config.symbol,
+            "client_order_ids": client_order_ids,
+            "profile": self.config.profile,
+            "trace_id": f"{self.position.get('trace_id', 'protect')}-cancel",
+        }
+        try:
+            result = self._http_post("/api/investor/order", payload, timeout=12)
+            self._log_event(
+                "POSITION_PROTECTION_ORDERS_CANCELLED",
+                {
+                    "symbol": self.config.symbol,
+                    "client_order_ids": client_order_ids,
+                    "result_count": len((result or {}).get("results", [])) if isinstance(result, dict) else 0,
+                },
+            )
+        except Exception as exc:
+            self._log_event(
+                "POSITION_PROTECTION_CANCEL_FAILED",
+                {
+                    "symbol": self.config.symbol,
+                    "client_order_ids": client_order_ids,
+                    "error": str(exc),
+                },
+            )
+
     def _fetch_mark_price(self) -> tuple[float, datetime | None, datetime, str]:
         fetch_attempts = (
             (
@@ -2341,6 +2450,17 @@ class ProfitMaxV1Runner:
                 "reason": reason,
             },
         )
+        try:
+            self._submit_position_protection_orders()
+        except Exception as exc:
+            self._log_event(
+                "POSITION_PROTECTION_PLACE_FAILED",
+                {
+                    "symbol": current_symbol,
+                    "source": "api_reconcile",
+                    "error": str(exc),
+                },
+            )
 
     def _update_market(self) -> bool:
         fetch_start_ts = utc_now()
@@ -4438,6 +4558,16 @@ class ProfitMaxV1Runner:
                 "dry_run": bool(adapter_result.get("dry_run", False)),
             },
         )
+        try:
+            self._submit_position_protection_orders()
+        except Exception as exc:
+            self._log_event(
+                "POSITION_PROTECTION_PLACE_FAILED",
+                {
+                    "symbol": self.config.symbol,
+                    "error": str(exc),
+                },
+            )
         self._log_event(
             "TRADE_EXECUTED",
             {
@@ -4628,6 +4758,7 @@ class ProfitMaxV1Runner:
     def _close_position(self, reason: str) -> None:
         if self.position is None:
             return
+        self._cancel_position_protection_orders()
         if bool(self.position.get("has_open_remainder", False)):
             self._log_event(
                 "EXIT_BLOCKED",
