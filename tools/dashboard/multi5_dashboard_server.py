@@ -1075,6 +1075,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if path == "/api/health":
+                self._send_text(
+                    200,
+                    json.dumps({"ok": True, "service": "multi5_dashboard", "ts": utc_now_iso()}, ensure_ascii=False),
+                    "application/json; charset=utf-8",
+                )
+                return
+
             if path == "/api/config":
                 self._send_text(
                     200,

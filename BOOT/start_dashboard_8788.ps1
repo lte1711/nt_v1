@@ -96,7 +96,7 @@ $selfProbeResults = @()
 try {
     for ($i = 1; $i -le $SelfProbeCount; $i++) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/runtime' -TimeoutSec $SelfProbeTimeoutSec
+        $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/health' -TimeoutSec $SelfProbeTimeoutSec
         $sw.Stop()
         $selfProbeResults += [pscustomobject]@{
             run = $i

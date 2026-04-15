@@ -13,11 +13,26 @@ if (-not (Test-Path $pythonExe)) {
     throw "Virtualenv python not found: $pythonExe"
 }
 
+function Test-TcpPortOpen([int]$Port, [int]$TimeoutMs = 1000) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $async = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
+        if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+            return $false
+        }
+        $client.EndConnect($async)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Close()
+    }
+}
+
 function Wait-ForPortListening([int]$Port, [int]$TimeoutSec = 30) {
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     do {
-        $listener = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($listener) {
+        if (Test-TcpPortOpen -Port $Port -TimeoutMs 1000) {
             return $true
         }
         Start-Sleep -Milliseconds 500
@@ -25,8 +40,17 @@ function Wait-ForPortListening([int]$Port, [int]$TimeoutSec = 30) {
     return $false
 }
 
+function Test-HttpOk([string]$Url, [int]$TimeoutSec = 8) {
+    try {
+        $resp = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec $TimeoutSec
+        return ([int]$resp.StatusCode -eq 200)
+    } catch {
+        return $false
+    }
+}
+
 function Ensure-ApiStarted {
-    if ((Get-ListenerPidsByPort -Port 8100).Count -ge 1) {
+    if (Test-TcpPortOpen -Port 8100 -TimeoutMs 1000) {
         Write-Host "API already listening on 8100" -ForegroundColor Yellow
         return
     }
@@ -41,7 +65,7 @@ function Ensure-ApiStarted {
 }
 
 function Ensure-DashboardStarted {
-    if ((Get-ListenerPidsByPort -Port 8788).Count -ge 1) {
+    if (Test-TcpPortOpen -Port 8788 -TimeoutMs 1000) {
         Write-Host "Dashboard already listening on 8788" -ForegroundColor Yellow
         return
     }
@@ -50,40 +74,47 @@ function Ensure-DashboardStarted {
         throw "Dashboard did not start listening on port 8788"
     }
     $deadline = (Get-Date).AddSeconds(45)
-    $lastError = $null
     do {
-        try {
-            $resp = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8788/api/runtime" -TimeoutSec 12
-            if ([int]$resp.StatusCode -eq 200) {
-                Write-Host "Dashboard listening on 8788" -ForegroundColor Green
-                return
-            }
-            $lastError = "Dashboard health probe returned status $($resp.StatusCode)"
-        } catch {
-            $lastError = $_.Exception.Message
+        if (Test-HttpOk -Url "http://127.0.0.1:8788/api/health" -TimeoutSec 8) {
+            Write-Host "Dashboard listening on 8788" -ForegroundColor Green
+            return
         }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $deadline)
 
-    if ($lastError) {
-        throw "Dashboard health probe failed: $lastError"
-    }
     throw "Dashboard health probe failed"
 }
 
 function Ensure-EngineStarted {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $startEngineScript | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Engine startup script failed with exit code $LASTEXITCODE"
-    }
-    Start-Sleep -Seconds 3
-    $engineProcesses = @(Get-CimInstance Win32_Process | Where-Object {
+    $existingEngine = @(Get-CimInstance Win32_Process | Where-Object {
         $_.Name -eq "python.exe" -and $_.CommandLine -match "run_multi5_engine\.py"
     })
+    if ($existingEngine.Count -ge 1) {
+        Write-Host "Engine process already detected" -ForegroundColor Yellow
+        return
+    }
+
+    Start-Process -FilePath "powershell.exe" -ArgumentList @(
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", $startEngineScript
+    ) -WindowStyle Hidden | Out-Null
+
+    $deadline = (Get-Date).AddSeconds(45)
+    do {
+        $engineProcesses = @(Get-CimInstance Win32_Process | Where-Object {
+            $_.Name -eq "python.exe" -and $_.CommandLine -match "run_multi5_engine\.py"
+        })
+        if ($engineProcesses.Count -ge 1) {
+            Write-Host "Engine process detected" -ForegroundColor Green
+            return
+        }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+
     if ($engineProcesses.Count -lt 1) {
         throw "Engine process was not detected after startup"
     }
-    Write-Host "Engine process detected" -ForegroundColor Green
 }
 
 Write-Host "=== Starting API ===" -ForegroundColor Cyan
