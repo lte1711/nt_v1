@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$scriptPath = "C:\next-trade-ver1.0\BOOT\worker_watchdog.ps1"
+$scriptPath = "C:\nt_v1\BOOT\worker_watchdog.ps1"
 
 $existing = Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq "powershell.exe" -and
@@ -28,3 +28,4 @@ Start-Sleep -Seconds 1
 
 Write-Output "WORKER_WATCHDOG_START=YES"
 Write-Output "WORKER_WATCHDOG_PID=$($proc.Id)"
+

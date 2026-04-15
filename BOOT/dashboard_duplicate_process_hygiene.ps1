@@ -3,7 +3,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$projectRoot = 'C:\next-trade-ver1.0'
+$projectRoot = 'C:\nt_v1'
 $engineRoot = Join-Path $projectRoot 'NEXT-TRADE'
 $dashboardStartScript = Join-Path $projectRoot 'BOOT\start_dashboard_8788.ps1'
 
@@ -56,3 +56,4 @@ try {
     listener_pids_8788 = (@($listeners | Select-Object -ExpandProperty OwningProcess -Unique) -join ',')
     api_status = $apiStatus
 } | ConvertTo-Json -Depth 4
+

@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$scriptPath = "C:\next-trade-ver1.0\BOOT\first_order_milestone_reporter.ps1"
+$scriptPath = "C:\nt_v1\BOOT\first_order_milestone_reporter.ps1"
 
 $existing = Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq "powershell.exe" -and
@@ -26,3 +26,4 @@ Start-Sleep -Seconds 1
 
 Write-Output "MILESTONE_REPORTER_START=YES"
 Write-Output "MILESTONE_REPORTER_PID=$($p.Id)"
+

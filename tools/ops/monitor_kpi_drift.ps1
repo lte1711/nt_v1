@@ -1,11 +1,11 @@
-param(
+﻿param(
     [int]$IntervalMinutes = 5,
     [int]$Iterations = 1,
-    [string]$OutputDir = "C:\next-trade-ver1.0\reports\kpi_drift_monitor"
+    [string]$OutputDir = "C:\nt_v1\reports\kpi_drift_monitor"
 )
 
 $ErrorActionPreference = "Stop"
-$verifyScript = "C:\next-trade-ver1.0\tools\ops\verify_kpi_integrity_lock.ps1"
+$verifyScript = "C:\nt_v1\tools\ops\verify_kpi_integrity_lock.ps1"
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
@@ -54,3 +54,4 @@ for ($i = 1; $i -le $Iterations; $i++) {
         Start-Sleep -Seconds ($IntervalMinutes * 60)
     }
 }
+

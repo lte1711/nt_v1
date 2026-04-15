@@ -32,7 +32,7 @@ A duplicate conflict exists only when one of the following is true:
 
 ### Rule P4: Preferred Launch Path
 The preferred launch command remains the project virtual environment python:
-`C:\next-trade-ver1.0\NEXT-TRADE\.venv\Scripts\python.exe C:\next-trade-ver1.0\NEXT-TRADE\tools\dashboard\multi5_dashboard_server.py`
+`C:\nt_v1\NEXT-TRADE\.venv\Scripts\python.exe C:\nt_v1\NEXT-TRADE\tools\dashboard\multi5_dashboard_server.py`
 
 ### Rule P5: Monitoring Scripts
 Watchdog/autoguard logic must check listener and API health before process-count duplicate cleanup.
@@ -41,3 +41,4 @@ Watchdog/autoguard logic must check listener and API health before process-count
 - Single listener is the primary runtime truth.
 - Process-count-only duplicate cleanup is unsafe for the current observed dashboard launch pattern.
 - Future cleanup should target listener conflicts, not merely parent-child process count.
+

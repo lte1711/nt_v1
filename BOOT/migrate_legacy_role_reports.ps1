@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$RootPath = "C:\next-trade-ver1.0\reports",
+    [string]$RootPath = "C:\nt_v1\reports",
     [string]$RunDate = ""
 )
 
@@ -46,7 +46,7 @@ function Resolve-ReportDate {
     }
 }
 
-& "C:\next-trade-ver1.0\BOOT\ensure_daily_report_folders.ps1" -RootPath $RootPath -DateString $RunDate | Out-Null
+& "C:\nt_v1\BOOT\ensure_daily_report_folders.ps1" -RootPath $RootPath -DateString $RunDate | Out-Null
 
 $runHoneyFolder = Join-Path (Join-Path $RootPath $RunDate) "honey_execution_reports"
 $manifestCsv = Join-Path $runHoneyFolder "LEGACY_ROLE_REPORT_MIGRATION_MANIFEST_$($RunDate).csv"
@@ -126,4 +126,5 @@ $summaryLines | Set-Content -Path $summaryTxt -Encoding UTF8
     manifest_json = $manifestJson
     summary_txt = $summaryTxt
 } | ConvertTo-Json -Depth 3
+
 

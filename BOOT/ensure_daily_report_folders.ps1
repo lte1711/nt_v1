@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$RootPath = "C:\next-trade-ver1.0\reports",
+    [string]$RootPath = "C:\nt_v1\reports",
     [string]$DateString = ""
 )
 
@@ -45,4 +45,5 @@ $result = [ordered]@{
 }
 
 $result | ConvertTo-Json -Depth 3
+
 

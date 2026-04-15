@@ -1,5 +1,5 @@
-$ErrorActionPreference = "SilentlyContinue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+﻿$ErrorActionPreference = "SilentlyContinue"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
 $outDir = Resolve-NtRoleReportDir -RoleFolder "honey_execution_reports" -EnsureExists
 $outFile = Join-Path $outDir "nt_phase5_reboot_1m_check_report.txt"
@@ -63,3 +63,4 @@ if ($pass) {
 
 $lines | Set-Content -Encoding UTF8 $outFile
 $lines | Write-Output
+

@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$BaseDir = "C:\next-trade-ver1.0\data\runtime_observation",
+    [string]$BaseDir = "C:\nt_v1\data\runtime_observation",
     [int]$DurationHours = 168,
     [int]$IntervalSeconds = 300
 )
@@ -12,8 +12,8 @@ $obsEnd = $obsStart.AddHours($DurationHours)
 $logFile = Join-Path $BaseDir "evergreen_runtime_7d_log.txt"
 $summaryFile = Join-Path $BaseDir "evergreen_runtime_7d_summary.txt"
 $finalReportFile = Join-Path $BaseDir "evergreen_runtime_7d_final_report.md"
-$engineLogPath = "C:\next-trade-ver1.0\logs\runtime\multi5_runtime_events.jsonl"
-$orderEventLogPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl"
+$engineLogPath = "C:\nt_v1\logs\runtime\multi5_runtime_events.jsonl"
+$orderEventLogPath = "C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl"
 $checkpointHours = @(6, 12, 24, 48, 72, 120)
 $checkpointWritten = @{}
 $lastCpuSample = @{}
@@ -295,4 +295,5 @@ Write-Line $summaryFile "FINAL_RUNTIME_STATUS=$(if ($apiHealthWarnOrFailCount -e
 - API_HEALTH_WARN_OR_FAIL_COUNT: $apiHealthWarnOrFailCount
 - SAFE_START_BREAK_COUNT: $safeStartBreakCount
 "@ | Set-Content -Path $finalReportFile -Encoding UTF8
+
 

@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $runtimeDir = Join-Path $projectRoot "logs\runtime"
 $serviceDir = Join-Path $projectRoot "logs\service"
 $reportsDir = Join-Path $projectRoot "reports"
@@ -40,3 +40,4 @@ New-Item -ItemType Directory -Force -Path $serviceDir | Out-Null
 New-Item -ItemType Directory -Force -Path $reportsDir | Out-Null
 
 Write-Output "STATE_RESET=YES"
+

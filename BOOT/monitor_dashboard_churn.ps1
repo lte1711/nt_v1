@@ -5,7 +5,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-. 'C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1'
+. 'C:\nt_v1\BOOT\report_path_resolver.ps1'
 
 $logPath = Resolve-NtRoleReportFile -RoleFolder 'honey_execution_reports' -FileName 'phase5_autoguard_log.txt'
 $reportPath = Resolve-NtRoleReportFile -RoleFolder 'honey_execution_reports' -FileName 'dashboard_churn_monitor_latest.json' -EnsureParent
@@ -60,3 +60,4 @@ $result = [pscustomobject]@{
 
 $result | ConvertTo-Json -Depth 4 | Set-Content -Path $reportPath -Encoding UTF8
 $result | ConvertTo-Json -Depth 4
+

@@ -1,11 +1,11 @@
-param(
+﻿param(
     [int]$InitialDelaySec = 120
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $logDir = Join-Path $projectRoot "logs\service"
 $outputPath = Join-Path $logDir "post_reboot_status_probe.json"
 $autoBootStatusPath = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "auto_boot_completion_status.json" -EnsureParent
@@ -89,3 +89,4 @@ if (Test-Path $runtimeHealthValidationPath) {
 }
 
 $payload | ConvertTo-Json -Depth 6 | Set-Content -Path $outputPath -Encoding UTF8
+

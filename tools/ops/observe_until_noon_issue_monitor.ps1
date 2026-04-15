@@ -1,5 +1,5 @@
-param(
-    [string]$ProjectRoot = "C:\next-trade-ver1.0",
+﻿param(
+    [string]$ProjectRoot = "C:\nt_v1",
     [int]$IntervalSeconds = 30
 )
 
@@ -299,3 +299,4 @@ foreach ($k in ($issueTypeCounts.Keys | Sort-Object)) {
     $finalLines += "- ${k}: $($issueTypeCounts[$k])"
 }
 $finalLines -join "`r`n" | Set-Content -Path $summaryPath -Encoding UTF8
+

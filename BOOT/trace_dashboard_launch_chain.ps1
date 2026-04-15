@@ -3,7 +3,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$startScript = 'C:\next-trade-ver1.0\BOOT\start_dashboard_8788.ps1'
+$startScript = 'C:\nt_v1\BOOT\start_dashboard_8788.ps1'
 
 Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq 'python.exe' -and $_.CommandLine -like '*multi5_dashboard_server.py*'
@@ -44,3 +44,4 @@ $result = [pscustomobject]@{
     timeline = $timeline
 }
 $result | ConvertTo-Json -Depth 6
+

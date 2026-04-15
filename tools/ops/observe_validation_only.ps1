@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $eventLogPath = Join-Path $projectRoot "logs\runtime\profitmax_v1_events.jsonl"
 $runtimeLogPath = Join-Path $projectRoot "logs\runtime\multi5_runtime_events.jsonl"
 $snapshotPath = Join-Path $projectRoot "logs\runtime\portfolio_metrics_snapshot.json"
@@ -234,3 +234,4 @@ while ($true) {
     "ACTIVE_VALIDATION_ONLY" | Set-Content -Path $statusPath -Encoding UTF8
     Start-Sleep -Seconds 30
 }
+

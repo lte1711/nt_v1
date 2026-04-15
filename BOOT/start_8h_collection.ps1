@@ -1,7 +1,7 @@
-$ErrorActionPreference = "Stop"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+﻿$ErrorActionPreference = "Stop"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$collector = "C:\next-trade-ver1.0\BOOT\collect_runtime_8h.ps1"
+$collector = "C:\nt_v1\BOOT\collect_runtime_8h.ps1"
 $statusFile = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "nt_phase2_8h_live_collection_status.txt" -EnsureParent
 
 $existing = Get-CimInstance Win32_Process | Where-Object {
@@ -32,3 +32,4 @@ Start-Sleep -Seconds 1
 Write-Output "COLLECTION_START=YES"
 Write-Output "COLLECTION_PID=$($proc.Id)"
 Write-Output "COLLECTION_STATUS_FILE=$statusFile"
+

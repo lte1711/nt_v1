@@ -1,9 +1,9 @@
-$ErrorActionPreference = "Stop"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+﻿$ErrorActionPreference = "Stop"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$collectorScript = "C:\next-trade-ver1.0\BOOT\collect_runtime_12h.ps1"
-$observeScript = "C:\next-trade-ver1.0\BOOT\observe_multi5_realtime.ps1"
-$reportScript = "C:\next-trade-ver1.0\BOOT\write_12h_runtime_report.ps1"
+$collectorScript = "C:\nt_v1\BOOT\collect_runtime_12h.ps1"
+$observeScript = "C:\nt_v1\BOOT\observe_multi5_realtime.ps1"
+$reportScript = "C:\nt_v1\BOOT\write_12h_runtime_report.ps1"
 
 $reportDir = Resolve-NtRoleReportDir -RoleFolder "honey_execution_reports" -EnsureExists
 $collectionJsonl = Join-Path $reportDir "runtime_12h_collection.jsonl"
@@ -83,3 +83,4 @@ Write-Output "RUNTIME_12H_COLLECTION_STATUS=$collectionStatus"
 Write-Output "RUNTIME_12H_OBSERVE_STATUS=$observeStatus"
 Write-Output "RUNTIME_12H_REPORT_PATH=$finalReport"
 Write-Output "RUNTIME_12H_SUMMARY_JSON=$finalSummary"
+

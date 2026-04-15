@@ -1,7 +1,7 @@
-$ErrorActionPreference = "Stop"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+﻿$ErrorActionPreference = "Stop"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$scriptPath = "C:\next-trade-ver1.0\BOOT\observe_multi5_realtime.ps1"
+$scriptPath = "C:\nt_v1\BOOT\observe_multi5_realtime.ps1"
 $statusPath = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "nt_phase2_realtime_observe_status.txt" -EnsureParent
 
 $existing = Get-CimInstance Win32_Process | Where-Object {
@@ -30,3 +30,4 @@ Start-Sleep -Seconds 1
 Write-Output "OBSERVE_START=YES"
 Write-Output "OBSERVE_PID=$($p.Id)"
 Write-Output "OBSERVE_STATUS_FILE=$statusPath"
+

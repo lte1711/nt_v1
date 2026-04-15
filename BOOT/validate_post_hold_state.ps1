@@ -1,7 +1,7 @@
 ﻿param()
 
 $ErrorActionPreference = 'Stop'
-$root = 'C:\next-trade-ver1.0\reports'
+$root = 'C:\nt_v1\reports'
 $datedRoot = Join-Path $root '2026-03-15'
 $manifestCsv = Join-Path $datedRoot 'honey_execution_reports\LEGACY_ROLE_REPORT_MIGRATION_MANIFEST_2026-03-15.csv'
 
@@ -62,4 +62,5 @@ $rows | Export-Csv -Path $detailPathCsv -NoTypeInformation -Encoding UTF8
 $rows | ConvertTo-Json -Depth 4 | Set-Content -Path $detailPathJson -Encoding UTF8
 ($summary | ConvertTo-Json -Depth 4) | Set-Content -Path $summaryPath -Encoding UTF8
 $summary | ConvertTo-Json -Depth 4
+
 

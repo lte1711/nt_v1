@@ -1,10 +1,10 @@
-param(
+﻿param(
     [int]$PollSec = 15,
     [int]$TimeoutMinutes = 240
 )
 
 $ErrorActionPreference = "Stop"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
 function Read-KeyValueFile {
     param([string]$Path)
@@ -32,7 +32,7 @@ function Read-KeyValueFile {
 $reportDir = Resolve-NtRoleReportDir -RoleFolder "honey_execution_reports" -EnsureExists
 $collectionStatusPath = Join-Path $reportDir "runtime_12h_collection_status.txt"
 $watchLogPath = Join-Path $reportDir "runtime_12h_final_audit_watch.log"
-$auditScript = "C:\next-trade-ver1.0\BOOT\write_12h_runtime_final_audit.ps1"
+$auditScript = "C:\nt_v1\BOOT\write_12h_runtime_final_audit.ps1"
 
 $startedAt = Get-Date
 Add-Content -LiteralPath $watchLogPath -Encoding UTF8 -Value ("{0} WATCH_START poll_sec={1} timeout_min={2}" -f (Get-Date).ToString("o"), $PollSec, $TimeoutMinutes)
@@ -56,3 +56,4 @@ while ($true) {
     Add-Content -LiteralPath $watchLogPath -Encoding UTF8 -Value ("{0} WAITING status={1}" -f (Get-Date).ToString("o"), $collectionState)
     Start-Sleep -Seconds $PollSec
 }
+

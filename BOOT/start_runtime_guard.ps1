@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$guardScript = "C:\next-trade-ver1.0\BOOT\runtime_guard.ps1"
+$guardScript = "C:\nt_v1\BOOT\runtime_guard.ps1"
 $intervalSec = 30
 $observeMinutes = 480
 
@@ -48,3 +48,4 @@ finally {
     }
     $mutex.Dispose()
 }
+

@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$RootPath = "C:\next-trade-ver1.0\reports",
+    [string]$RootPath = "C:\nt_v1\reports",
     [string[]]$LegacyRoleFolders = @("honey_execution_reports", "candy_validation_reports"),
     [switch]$Execute
 )
@@ -36,4 +36,5 @@ foreach ($folder in $LegacyRoleFolders) {
 }
 
 $results | ConvertTo-Json -Depth 3
+
 

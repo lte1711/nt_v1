@@ -1,4 +1,4 @@
-# STEP-GEMINI-TECHNICAL-VERIFICATION-1 PROJECT-ALIGNED
+﻿# STEP-GEMINI-TECHNICAL-VERIFICATION-1 PROJECT-ALIGNED
 
 ## 1) 역할 고정
 
@@ -9,7 +9,7 @@ CURRENT_EXECUTION_OWNER=CODEX
 CURRENT_TECHNICAL_VERIFIER=GEMINI
 CURRENT_DATA_VALIDATOR=CANDY
 FINAL_APPROVER=DENNIS
-CONSTITUTION_PATH=C:\next-trade-ver1.0\instructions\NEXT-TRADE-CONSTITUTION-FINAL.md
+CONSTITUTION_PATH=C:\nt_v1\instructions\NEXT-TRADE-CONSTITUTION-FINAL.md
 ```
 
 ### [FACT]
@@ -27,21 +27,21 @@ EVIDENCE_BASE=PROJECT_ROOT_INTERNAL_FILES_AND_LOGS_ONLY
 ### [FACT]
 
 ```text
-PROJECT_ROOT=C:\next-trade-ver1.0
-BOOT_ROOT=C:\next-trade-ver1.0\BOOT
-OFFICIAL_ENGINE_ENTRY=C:\next-trade-ver1.0\BOOT\start_engine.ps1
-ACTUAL_BOOT_TO_WORKER_CHAIN=C:\next-trade-ver1.0\BOOT\start_engine.ps1 -> C:\next-trade-ver1.0\tools\multi5\run_multi5_engine.py -> C:\next-trade-ver1.0\tools\ops\profitmax_v1_runner.py
-RUNTIME_GUARD_CHAIN=C:\next-trade-ver1.0\BOOT\start_runtime_guard.ps1 -> C:\next-trade-ver1.0\BOOT\runtime_guard.ps1 -> C:\next-trade-ver1.0\BOOT\start_engine.ps1
-AUTOGUARD_CHAIN=C:\next-trade-ver1.0\BOOT\phase5_autoguard.ps1 -> C:\next-trade-ver1.0\BOOT\start_runtime_guard.ps1 -> C:\next-trade-ver1.0\BOOT\start_engine.ps1
+PROJECT_ROOT=C:\nt_v1
+BOOT_ROOT=C:\nt_v1\BOOT
+OFFICIAL_ENGINE_ENTRY=C:\nt_v1\BOOT\start_engine.ps1
+ACTUAL_BOOT_TO_WORKER_CHAIN=C:\nt_v1\BOOT\start_engine.ps1 -> C:\nt_v1\tools\multi5\run_multi5_engine.py -> C:\nt_v1\tools\ops\profitmax_v1_runner.py
+RUNTIME_GUARD_CHAIN=C:\nt_v1\BOOT\start_runtime_guard.ps1 -> C:\nt_v1\BOOT\runtime_guard.ps1 -> C:\nt_v1\BOOT\start_engine.ps1
+AUTOGUARD_CHAIN=C:\nt_v1\BOOT\phase5_autoguard.ps1 -> C:\nt_v1\BOOT\start_runtime_guard.ps1 -> C:\nt_v1\BOOT\start_engine.ps1
 ```
 
 ### [FACT]
 
 ```text
 DO_NOT_USE_NONEXISTENT_PATH=src/engine/main_loop.py
-PRIMARY_VERIFICATION_TARGET=C:\next-trade-ver1.0\tools\ops\profitmax_v1_runner.py
-PRIMARY_RUNTIME_LOG=C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl
-PRIMARY_KPI_FILE=C:\next-trade-ver1.0\logs\runtime\portfolio_metrics_snapshot.json
+PRIMARY_VERIFICATION_TARGET=C:\nt_v1\tools\ops\profitmax_v1_runner.py
+PRIMARY_RUNTIME_LOG=C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl
+PRIMARY_KPI_FILE=C:\nt_v1\logs\runtime\portfolio_metrics_snapshot.json
 ```
 
 ## 3) Gemini 단일 작업 지시
@@ -52,8 +52,8 @@ PRIMARY_KPI_FILE=C:\next-trade-ver1.0\logs\runtime\portfolio_metrics_snapshot.js
 
 ```text
 검증 대상:
-1. C:\next-trade-ver1.0\tools\ops\profitmax_v1_runner.py
-2. C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl
+1. C:\nt_v1\tools\ops\profitmax_v1_runner.py
+2. C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl
 
 핵심 증거:
 A. EMERGENCY_MONITOR_VALIDATE_DELEGATED
@@ -76,8 +76,8 @@ HARD_RESET_PRECEDING_EVENT_CHAIN_CONFIRMED=YES/NO
 
 ```text
 검증 대상:
-1. C:\next-trade-ver1.0\tools\ops\profitmax_v1_runner.py
-2. C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl
+1. C:\nt_v1\tools\ops\profitmax_v1_runner.py
+2. C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl
 
 핵심 증거:
 A. STATE_API_SOURCE_OF_TRUTH_APPLIED
@@ -101,9 +101,9 @@ RECONCILE_BEFORE_RESET_FOR_COUNT_MISMATCH=YES/NO
 
 ```text
 검증 대상:
-1. C:\next-trade-ver1.0\logs\runtime\portfolio_metrics_snapshot.json
-2. C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl
-3. C:\next-trade-ver1.0\tools\ops\profitmax_v1_runner.py
+1. C:\nt_v1\logs\runtime\portfolio_metrics_snapshot.json
+2. C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl
+3. C:\nt_v1\tools\ops\profitmax_v1_runner.py
 4. 헌법 KPI 요구: total_pnl|win_rate|max_drawdown|trade_count|sharpe_ratio|avg_holding_time
 
 핵심 증거:
@@ -163,3 +163,4 @@ RECONCILE_PRIORITY_CONFIRMED = YES/NO
 KPI_DIRECT_CAUSE_CLASSIFIED = YES/NO
 NEXT_ACTION = CANDY_RECHECK / CODEX_ADDITIONAL_READ_ONLY / DENNIS_REVIEW
 ```
+

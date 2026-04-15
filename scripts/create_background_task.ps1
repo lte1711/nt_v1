@@ -1,4 +1,4 @@
-# NEXT-TRADE 백그라운드 태스크 생성 스크립트
+﻿# NEXT-TRADE 백그라운드 태스크 생성 스크립트
 # Windows 태스크 스케줄러에 등록하여 부팅 시 자동 실행
 
 param(
@@ -10,8 +10,8 @@ param(
 # 변수 설정
 $TASK_NAME = "NEXT-TRADE_Background_Services"
 $TASK_DESCRIPTION = "NEXT-TRADE Trading System Background Services"
-$SCRIPT_PATH = "C:\next-trade-ver1.0\scripts\start_services_background.bat"
-$PROJECT_ROOT = "C:\next-trade-ver1.0"
+$SCRIPT_PATH = "C:\nt_v1\scripts\start_services_background.bat"
+$PROJECT_ROOT = "C:\nt_v1"
 
 function Create-BackgroundTask {
     Write-Host "Creating Windows Task Scheduler entry for NEXT-TRADE..." -ForegroundColor Green
@@ -139,3 +139,4 @@ if ($Create) {
     Write-Host "- Continues running even after user logout" -ForegroundColor Gray
     Write-Host "- Runs with SYSTEM privileges for maximum stability" -ForegroundColor Gray
 }
+

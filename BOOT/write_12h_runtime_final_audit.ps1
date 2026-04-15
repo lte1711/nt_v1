@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$CollectionStatusPath = "",
     [string]$ObserveStatusPath = "",
     [string]$CollectionJsonlPath = "",
@@ -8,7 +8,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
 function Read-KeyValueFile {
     param([string]$Path)
@@ -198,19 +198,19 @@ if ([string]::IsNullOrWhiteSpace($OutputSummaryJsonPath)) {
     $OutputSummaryJsonPath = Join-Path $reportDir "runtime_12h_final_audit_summary.json"
 }
 
-$monitorReportScript = "C:\next-trade-ver1.0\BOOT\write_12h_runtime_report.ps1"
-$healthValidationScript = "C:\next-trade-ver1.0\BOOT\validate_runtime_health_summary.ps1"
+$monitorReportScript = "C:\nt_v1\BOOT\write_12h_runtime_report.ps1"
+$healthValidationScript = "C:\nt_v1\BOOT\validate_runtime_health_summary.ps1"
 $monitorReportPath = Join-Path $reportDir "runtime_12h_monitor_report.txt"
 $monitorSummaryJsonPath = Join-Path $reportDir "runtime_12h_monitor_summary.json"
 $healthValidationPath = Join-Path $reportDir "runtime_health_validation_latest.json"
 $guardLogPath = Join-Path $reportDir "runtime_guard_log.txt"
 $autoguardLogPath = Join-Path $reportDir "phase5_autoguard_log.txt"
 $restartStatePath = Join-Path $reportDir "runtime_health_restart_state.json"
-$summaryPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_summary.json"
-$healthPath = "C:\next-trade-ver1.0\logs\runtime\runtime_health_summary.json"
-$tradeOutcomesPath = "C:\next-trade-ver1.0\logs\runtime\trade_outcomes.json"
-$engineStdoutPath = "C:\next-trade-ver1.0\logs\engine_stdout_.log"
-$engineErrorPath = "C:\next-trade-ver1.0\logs\engine_error_.log"
+$summaryPath = "C:\nt_v1\logs\runtime\profitmax_v1_summary.json"
+$healthPath = "C:\nt_v1\logs\runtime\runtime_health_summary.json"
+$tradeOutcomesPath = "C:\nt_v1\logs\runtime\trade_outcomes.json"
+$engineStdoutPath = "C:\nt_v1\logs\engine_stdout_.log"
+$engineErrorPath = "C:\nt_v1\logs\engine_error_.log"
 
 & $healthValidationScript | Out-Null
 & $monitorReportScript -CollectionJsonlPath $CollectionJsonlPath -ObserveJsonlPath $ObserveJsonlPath -OutputReportPath $monitorReportPath -OutputSummaryJsonPath $monitorSummaryJsonPath | Out-Null
@@ -499,3 +499,4 @@ Set-Content -LiteralPath $OutputSummaryJsonPath -Value ($result | ConvertTo-Json
 Write-Output "RUNTIME_12H_FINAL_AUDIT_WRITTEN=YES"
 Write-Output "RUNTIME_12H_FINAL_AUDIT_REPORT=$OutputReportPath"
 Write-Output "RUNTIME_12H_FINAL_AUDIT_SUMMARY_JSON=$OutputSummaryJsonPath"
+

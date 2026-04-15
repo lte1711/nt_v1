@@ -1,18 +1,18 @@
-# NEXT-TRADE CONSTITUTION SHORT v1.2.1
+﻿# NEXT-TRADE CONSTITUTION SHORT v1.2.1
 
 ```text
 STATUS=ACTIVE
 VERSION=1.2.1
 UPDATED=2026-03-29
-FILE=C:\next-trade-ver1.0\instructions\NEXT-TRADE-CONSTITUTION-SHORT.md
+FILE=C:\nt_v1\instructions\NEXT-TRADE-CONSTITUTION-SHORT.md
 
-PROJECT_ROOT=C:\next-trade-ver1.0
-BOOT_ROOT=C:\next-trade-ver1.0\BOOT
-ENGINE_ENTRY=C:\next-trade-ver1.0\BOOT\start_engine.ps1
-SRC_ROOT=C:\next-trade-ver1.0\src
-TOOLS_ROOT=C:\next-trade-ver1.0\tools
-LOG_ROOT=C:\next-trade-ver1.0\logs
-REPORT_ROOT=C:\next-trade-ver1.0\reports
+PROJECT_ROOT=C:\nt_v1
+BOOT_ROOT=C:\nt_v1\BOOT
+ENGINE_ENTRY=C:\nt_v1\BOOT\start_engine.ps1
+SRC_ROOT=C:\nt_v1\src
+TOOLS_ROOT=C:\nt_v1\tools
+LOG_ROOT=C:\nt_v1\logs
+REPORT_ROOT=C:\nt_v1\reports
 LEGACY_ROOT=C:\projects
 
 VERIFY_FIRST=ACTIVE
@@ -57,8 +57,9 @@ OPEN_POSITION_GUARD=ACTIVE
 TRADE_OUTCOME_FIELDS=entry_quality_score|entry_quality_score_known|position_source
 ALLOCATION_LOSS_REFLECTION=ACTIVE
 ALLOCATION_FACTORS=negative_pnl_penalty|loss_penalty|negative_avg_penalty
-BACKUP_ROOT=C:\next-trade-ver1.0\var\backups
-ACTIVE_BACKUP_FOLDER=C:\next-trade-ver1.0\var\backups\v1.2.1
+BACKUP_ROOT=C:\nt_v1\var\backups
+ACTIVE_BACKUP_FOLDER=C:\nt_v1\var\backups\v1.2.1
 BACKUP_NAME_RULE={relative_path}.{version}.{stage}.{timestamp}.bak
 BACKUP_STAGE_REQUIRED=YES
 ```
+

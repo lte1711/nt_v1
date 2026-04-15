@@ -1,4 +1,4 @@
-# NEXT-TRADE Legacy Flat Path Dependency Removal Directive
+﻿# NEXT-TRADE Legacy Flat Path Dependency Removal Directive
 
 ## Purpose
 
@@ -44,7 +44,7 @@ can break runtime logging, dashboard reads, and BOOT automation.
 Replace hardcoded flat paths such as:
 
 ```text
-C:\next-trade-ver1.0\ver2_report\reports\honey_execution_reports\...
+C:\nt_v1\ver2_report\reports\honey_execution_reports\...
 ```
 
 with one of:
@@ -104,3 +104,4 @@ Dependency removal work must produce:
 LEGACY_PATH_DEPENDENCY_REMOVAL_REPORT.txt
 LEGACY_PATH_DEPENDENCY_SCAN.txt
 ```
+

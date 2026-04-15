@@ -1,4 +1,4 @@
-# NEXT-TRADE Legacy Role Folder Cleanup Rule
+﻿# NEXT-TRADE Legacy Role Folder Cleanup Rule
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This document defines the fact-aligned cleanup rule for legacy role folders afte
 
 ```text
 ROOT_REPORT_PATH
-C:\next-trade-ver1.0\ver2_report\reports
+C:\nt_v1\ver2_report\reports
 
 LEGACY_ROLE_FOLDERS_PRESENT
 honey_execution_reports
@@ -145,3 +145,4 @@ This is not evidence of a bad copy by itself.
 2. If validation passes, keep legacy folders unchanged or apply reversible hold rename only
 3. Do not delete anything yet
 ```
+

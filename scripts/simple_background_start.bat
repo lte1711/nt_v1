@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 REM NEXT-TRADE 간단 백그라운드 시작 스크립트
 REM 모든 서버를 백그라운드에서 시작
 
@@ -6,10 +6,10 @@ echo Starting NEXT-TRADE Services in Background...
 echo.
 
 REM 프로젝트 루트로 이동
-cd /d "C:\next-trade-ver1.0"
+cd /d "C:\nt_v1"
 
 REM 환경 변수 설정
-set PYTHONPATH=C:\next-trade-ver1.0\src
+set PYTHONPATH=C:\nt_v1\src
 
 echo Starting API Server (Port 8100)...
 start /B "" ".venv\Scripts\python.exe" -m uvicorn next_trade.api.app:app --host 127.0.0.1 --port 8100
@@ -34,3 +34,4 @@ echo To stop all services, run: taskkill /f /im python.exe
 echo.
 
 pause
+

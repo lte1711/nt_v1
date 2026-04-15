@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import statistics
@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 
-PROJECT_ROOT = Path(r"C:\next-trade-ver1.0")
+PROJECT_ROOT = Path(r"C:\nt_v1")
 EVENT_LOG = PROJECT_ROOT / "logs/runtime/profitmax_v1_events.jsonl"
 RUNTIME_LOG = PROJECT_ROOT / "logs/runtime/multi5_runtime_events.jsonl"
 DETAIL_STATE = PROJECT_ROOT / "reports/2026-03-28/codex_execution_reports/STEP_BAEKSEOL_STRATEGY_UNDER_FRESHNESS_CONSTRAINT_1.detailed_state.json"
@@ -295,3 +295,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

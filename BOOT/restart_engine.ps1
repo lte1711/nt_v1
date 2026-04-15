@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 . (Join-Path $projectRoot "BOOT\report_path_resolver.ps1")
 $startEngineScript = Join-Path $projectRoot "BOOT\start_engine.ps1"
 $startRuntimeGuardScript = Join-Path $projectRoot "BOOT\start_runtime_guard.ps1"
@@ -136,3 +136,4 @@ if ($engineRoots.Count -eq 0) {
 
 Write-Output "ENGINE_RESTART=YES"
 Write-Output "ENGINE_PID_LIST=$((($engineRoots | Select-Object -ExpandProperty ProcessId) -join ','))"
+

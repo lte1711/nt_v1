@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$IntervalSec = 60,
     [int]$DurationMinutes = 720,
     [string]$OutputJsonlPath = "",
@@ -6,11 +6,11 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$runtimeLog = "C:\next-trade-ver1.0\logs\runtime\multi5_runtime_events.jsonl"
-$scanLog = "C:\next-trade-ver1.0\logs\runtime\multi5_symbol_scan.jsonl"
-$workerLog = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl"
+$runtimeLog = "C:\nt_v1\logs\runtime\multi5_runtime_events.jsonl"
+$scanLog = "C:\nt_v1\logs\runtime\multi5_symbol_scan.jsonl"
+$workerLog = "C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl"
 $outDir = Resolve-NtRoleReportDir -RoleFolder "honey_execution_reports" -EnsureExists
 $outJsonl = if ([string]::IsNullOrWhiteSpace($OutputJsonlPath)) { Join-Path $outDir "runtime_12h_collection.jsonl" } else { $OutputJsonlPath }
 $outStatus = if ([string]::IsNullOrWhiteSpace($OutputStatusPath)) { Join-Path $outDir "runtime_12h_collection_status.txt" } else { $OutputStatusPath }
@@ -97,3 +97,4 @@ Set-Content -Path $outStatus -Encoding UTF8 -Value @(
     "COLLECTION_OUTPUT=$outJsonl"
     "COLLECTION_STATUS=COMPLETED"
 )
+

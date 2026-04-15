@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$IntervalSec = 30,
     [int]$ObserveMinutes = 10080,
     [int]$ApiTimeoutSec = 20,
@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = 'Continue'
-. 'C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1'
+. 'C:\nt_v1\BOOT\report_path_resolver.ps1'
 
 $latestPath = Resolve-NtRoleReportFile -RoleFolder 'honey_execution_reports' -FileName 'dashboard_runtime_validation_latest.json' -EnsureParent
 $historyPath = Resolve-NtRoleReportFile -RoleFolder 'honey_execution_reports' -FileName 'dashboard_runtime_validation_history.jsonl' -EnsureParent
@@ -115,3 +115,4 @@ while ((Get-Date) -lt $endAt) {
 }
 
 Log 'DASHBOARD_RUNTIME_VALIDATION_END'
+

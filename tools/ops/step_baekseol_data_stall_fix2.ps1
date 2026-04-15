@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $configPath = Join-Path $projectRoot "tools\multi5\multi5_config.py"
 $bootPath = Join-Path $projectRoot "BOOT\start_engine.ps1"
 $restartScript = Join-Path $projectRoot "BOOT\restart_engine.ps1"
@@ -275,3 +275,4 @@ $lines.Add("- ACTION = $action")
 Set-Content -Path $reportPath -Value $lines -Encoding UTF8
 Write-Output "REPORT_PATH=$reportPath"
 Write-Output "SUMMARY_PATH=$summaryPath"
+

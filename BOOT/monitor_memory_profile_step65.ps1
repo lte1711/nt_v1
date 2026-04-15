@@ -11,7 +11,7 @@ function Get-KstNow {
 }
 
 function Get-ReportDir {
-    $root = "C:\next-trade-ver1.0\reports"
+    $root = "C:\nt_v1\reports"
     $dateFolder = (Get-KstNow).ToString("yyyy-MM-dd")
     $dir = Join-Path $root "$dateFolder\honey_execution_reports"
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -71,4 +71,5 @@ while ((Get-Date) -le $deadline) {
     }
     Start-Sleep -Seconds ($IntervalMinutes * 60)
 }
+
 

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$CollectionJsonlPath,
     [string]$ObserveJsonlPath,
     [string]$OutputReportPath = "",
@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
 function Get-JsonLines {
     param([string]$Path)
@@ -64,10 +64,10 @@ if ([string]::IsNullOrWhiteSpace($OutputSummaryJsonPath)) {
 $collectionRows = @(Get-JsonLines -Path $CollectionJsonlPath)
 $observeRows = @(Get-JsonLines -Path $ObserveJsonlPath)
 
-$summaryPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_summary.json"
-$healthPath = "C:\next-trade-ver1.0\logs\runtime\runtime_health_summary.json"
+$summaryPath = "C:\nt_v1\logs\runtime\profitmax_v1_summary.json"
+$healthPath = "C:\nt_v1\logs\runtime\runtime_health_summary.json"
 $validationPath = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "runtime_health_validation_latest.json" -EnsureParent
-$tradeOutcomesPath = "C:\next-trade-ver1.0\logs\runtime\trade_outcomes.json"
+$tradeOutcomesPath = "C:\nt_v1\logs\runtime\trade_outcomes.json"
 
 $summary = $null
 $health = $null
@@ -194,3 +194,4 @@ Set-Content -LiteralPath $OutputSummaryJsonPath -Value ($result | ConvertTo-Json
 Write-Output "RUNTIME_12H_REPORT_WRITTEN=YES"
 Write-Output "RUNTIME_12H_REPORT_PATH=$OutputReportPath"
 Write-Output "RUNTIME_12H_SUMMARY_JSON=$OutputSummaryJsonPath"
+

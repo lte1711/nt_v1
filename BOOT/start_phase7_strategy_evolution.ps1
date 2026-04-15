@@ -1,12 +1,12 @@
 ﻿param(
-    [string]$ProjectRoot = "C:\next-trade-ver1.0",
-    [string]$OutDir = "C:\next-trade-ver1.0\reports\phase7_strategy"
+    [string]$ProjectRoot = "C:\nt_v1",
+    [string]$OutDir = "C:\nt_v1\reports\phase7_strategy"
 )
 
 $ErrorActionPreference = "Stop"
 
 $python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
-$engine = "C:\next-trade-ver1.0\BOOT\phase7_strategy_evolution_engine.py"
+$engine = "C:\nt_v1\BOOT\phase7_strategy_evolution_engine.py"
 
 if (-not (Test-Path $python)) {
     throw "PROJECT_VENV_PYTHON_NOT_FOUND: $python"
@@ -24,5 +24,6 @@ if (Test-Path $summaryPath) {
     Write-Output "PHASE7_SUMMARY_PATH=$summaryPath"
     Get-Content $summaryPath
 }
+
 
 

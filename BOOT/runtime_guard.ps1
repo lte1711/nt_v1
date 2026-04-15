@@ -4,10 +4,10 @@
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$bootRoot = "C:\next-trade-ver1.0\BOOT"
-$projectRoot = "C:\next-trade-ver1.0"
+$bootRoot = "C:\nt_v1\BOOT"
+$projectRoot = "C:\nt_v1"
 $guardLog = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "runtime_guard_log.txt" -EnsureParent
 $endAt = (Get-Date).AddMinutes($ObserveMinutes)
 
@@ -98,4 +98,5 @@ while ((Get-Date) -lt $endAt) {
 }
 
 Write-GuardLog "GUARD_END"
+
 

@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$ManifestCsv = "C:\next-trade-ver1.0\reports\2026-03-15\honey_execution_reports\LEGACY_ROLE_REPORT_MIGRATION_MANIFEST_2026-03-15.csv",
+    [string]$ManifestCsv = "C:\nt_v1\reports\2026-03-15\honey_execution_reports\LEGACY_ROLE_REPORT_MIGRATION_MANIFEST_2026-03-15.csv",
     [string[]]$ActivePatterns = @("*.jsonl", "*_status.txt", "*_log.txt", "nt_phase5_portfolio_observe_*.txt")
 )
 
@@ -104,4 +104,5 @@ $summaryLines | Set-Content -Path $summaryTxt -Encoding UTF8
     summary_txt = $summaryTxt
     ready_for_reversible_cleanup = (($missingTargets -eq 0) -and ($sizeMismatches -eq 0))
 } | ConvertTo-Json -Depth 3
+
 

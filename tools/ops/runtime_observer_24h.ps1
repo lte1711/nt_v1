@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$BaseDir = "C:\next-trade-ver1.0\data\runtime_observation",
+    [string]$BaseDir = "C:\nt_v1\data\runtime_observation",
     [int]$DurationHours = 24,
     [int]$IntervalSeconds = 300
 )
@@ -12,8 +12,8 @@ $obsEnd = $obsStart.AddHours($DurationHours)
 $logFile = Join-Path $BaseDir "runtime_observation_24h_log.txt"
 $orderFile = Join-Path $BaseDir "runtime_observation_24h_orders.txt"
 $summaryFile = Join-Path $BaseDir "runtime_observation_24h_summary.txt"
-$engineLogPath = "C:\next-trade-ver1.0\logs\runtime\multi5_runtime_events.jsonl"
-$orderEventLogPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl"
+$engineLogPath = "C:\nt_v1\logs\runtime\multi5_runtime_events.jsonl"
+$orderEventLogPath = "C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl"
 
 New-Item -ItemType Directory -Force -Path $BaseDir | Out-Null
 
@@ -263,4 +263,5 @@ if ($apiWarnCount -gt 0 -or $safeStartBrokenCount -gt 0) {
     $finalStatus = "WARN_OR_FAIL_REVIEW_NEEDED"
 }
 Write-Line $summaryFile "FINAL_RUNTIME_STATUS=$finalStatus"
+
 

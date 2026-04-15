@@ -1,4 +1,4 @@
-# NEXT-TRADE Report Archive Migration Rule
+﻿# NEXT-TRADE Report Archive Migration Rule
 
 ## Purpose
 
@@ -8,7 +8,7 @@ This document defines the fact-aligned migration rule for moving from legacy fla
 
 ```text
 ROOT_REPORT_PATH
-C:\next-trade-ver1.0\ver2_report\reports
+C:\nt_v1\ver2_report\reports
 
 CURRENT_DAILY_FOLDER_PRESENT
 2026-03-15
@@ -139,3 +139,4 @@ experiment-specific evidence trees
 2. Build a migration manifest for legacy role folders only
 3. Do not move phase folders under the daily archive yet
 ```
+

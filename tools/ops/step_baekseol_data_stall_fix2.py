@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import re
@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
-PROJECT_ROOT = Path(r"C:\next-trade-ver1.0")
+PROJECT_ROOT = Path(r"C:\nt_v1")
 CONFIG_PATH = PROJECT_ROOT / "tools/multi5/multi5_config.py"
 BOOT_PATH = PROJECT_ROOT / "BOOT/start_engine.ps1"
 RESTART_SCRIPT = PROJECT_ROOT / "BOOT/restart_engine.ps1"
@@ -317,3 +317,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -1,4 +1,4 @@
-$scriptPath = "C:\next-trade-ver1.0\tools\ops\observe_until_noon_issue_monitor.ps1"
+﻿$scriptPath = "C:\nt_v1\tools\ops\observe_until_noon_issue_monitor.ps1"
 
 $existing = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq "powershell.exe" -and
@@ -34,3 +34,4 @@ if ($started.Count -gt 0) {
 
 "failed_to_start"
 exit 1
+

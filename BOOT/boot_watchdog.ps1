@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$ApiWaitSec = 12,
     [int]$EngineWaitSec = 8,
     [int]$UiWaitSec = 15,
@@ -6,9 +6,9 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $engineRoot = $projectRoot
 $bootRoot = Join-Path $projectRoot "BOOT"
 $opsUiRoot = Join-Path $projectRoot "evergreen-ops-ui"
@@ -408,3 +408,4 @@ if ($autoReady) {
 
 Log "BOOT_WATCHDOG_STATUS API_8100=$api OPS_UI_3001=$ui DASH_8788=$dash ENGINE_COUNT=$engineCount RUNTIME_GUARD_COUNT=$guardCount PHASE5_AUTOGUARD_COUNT=$autoGuardCount AUTO_READY=$autoReady"
 Log "BOOT_WATCHDOG_END"
+

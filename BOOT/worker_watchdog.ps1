@@ -5,13 +5,13 @@
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $pythonExe = Join-Path $projectRoot "venv\Scripts\python.exe"
 $workerScript = Join-Path $projectRoot "tools\ops\profitmax_v1_runner.py"
-$workerLogPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_events.jsonl"
-$workerSummaryPath = "C:\next-trade-ver1.0\logs\runtime\profitmax_v1_summary.json"
+$workerLogPath = "C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl"
+$workerSummaryPath = "C:\nt_v1\logs\runtime\profitmax_v1_summary.json"
 $dashboardRuntimeApi = "http://127.0.0.1:8788/api/runtime"
 $guardLog = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "worker_watchdog_log.txt" -EnsureParent
 $endAt = (Get-Date).AddMinutes($ObserveMinutes)
@@ -126,4 +126,5 @@ while ((Get-Date) -lt $endAt) {
 }
 
 Write-GuardLog "WORKER_GUARD_END"
+
 

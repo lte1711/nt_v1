@@ -1,6 +1,6 @@
-param(
-    [string]$SnapshotPath = "C:\next-trade-ver1.0\logs\runtime\portfolio_metrics_snapshot.json",
-    [string]$DashboardHtmlPath = "C:\next-trade-ver1.0\tools\dashboard\multi5_dashboard.html",
+﻿param(
+    [string]$SnapshotPath = "C:\nt_v1\logs\runtime\portfolio_metrics_snapshot.json",
+    [string]$DashboardHtmlPath = "C:\nt_v1\tools\dashboard\multi5_dashboard.html",
     [string]$ApiUrl = "http://127.0.0.1:8788/api/runtime"
 )
 
@@ -82,3 +82,4 @@ $snapshotApiMatch = (
         "KPI value type change"
     )
 } | ConvertTo-Json -Depth 5
+

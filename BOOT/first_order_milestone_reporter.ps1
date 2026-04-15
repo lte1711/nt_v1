@@ -1,10 +1,10 @@
-param(
+﻿param(
     [int]$IntervalSec = 60,
     [int]$DurationMinutes = 360
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
 $reportDir = Resolve-NtRoleReportDir -RoleFolder "honey_execution_reports" -EnsureExists
 $metricsFile = Join-Path $reportDir "nt_phase2_realtime_observe_metrics.jsonl"
@@ -121,3 +121,4 @@ while ((Get-Date) -lt $endAt) {
     }
     Start-Sleep -Seconds $IntervalSec
 }
+

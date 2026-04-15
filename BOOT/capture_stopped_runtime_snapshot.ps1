@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$RootPath = "C:\next-trade-ver1.0\reports",
+    [string]$RootPath = "C:\nt_v1\reports",
     [string]$DateString = "",
     [string]$TimeString = "",
     [switch]$AssumeStopped
@@ -82,4 +82,5 @@ $lines | Set-Content -Path $reportPath -Encoding UTF8
     copied_file_count = $copied.Count
     report_path = $reportPath
 } | ConvertTo-Json -Depth 3
+
 

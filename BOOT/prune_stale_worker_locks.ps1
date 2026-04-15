@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Continue"
+﻿$ErrorActionPreference = "Continue"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $lockDir = Join-Path $projectRoot "logs\runtime"
 $lockFiles = @(Get-ChildItem -Path $lockDir -Filter "profitmax_v1_runner_*.lock" -ErrorAction SilentlyContinue)
 $removed = 0
@@ -41,3 +41,4 @@ foreach ($lockFile in $lockFiles) {
 
 Write-Output ("STALE_WORKER_LOCKS_REMOVED={0}" -f $removed)
 Write-Output ("ACTIVE_WORKER_LOCKS_KEPT={0}" -f $kept)
+

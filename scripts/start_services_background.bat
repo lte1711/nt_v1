@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 REM NEXT-TRADE 백그라운드 서비스 시작 스크립트
 REM 모든 서버를 윈도우 백그라운드에서 실행
 
@@ -10,21 +10,21 @@ echo ====================================
 echo.
 
 REM 프로젝트 루트로 이동
-cd /d "C:\next-trade-ver1.0"
+cd /d "C:\nt_v1"
 
 REM 환경 변수 설정
-set PYTHONPATH=C:\next-trade-ver1.0\src
+set PYTHONPATH=C:\nt_v1\src
 
 echo [1/3] Starting API Server (Port 8100)...
-start /MIN "NEXT-TRADE API Server" cmd /c "cd /d C:\next-trade-ver1.0 && set PYTHONPATH=C:\next-trade-ver1.0\src && .venv\Scripts\python.exe -m uvicorn next_trade.api.app:app --host 127.0.0.1 --port 8100"
+start /MIN "NEXT-TRADE API Server" cmd /c "cd /d C:\nt_v1 && set PYTHONPATH=C:\nt_v1\src && .venv\Scripts\python.exe -m uvicorn next_trade.api.app:app --host 127.0.0.1 --port 8100"
 timeout /t 5 /nobreak >nul
 
 echo [2/3] Starting Dashboard Server (Port 8788)...
-start /MIN "NEXT-TRADE Dashboard" cmd /c "cd /d C:\next-trade-ver1.0 && .venv\Scripts\python.exe tools\dashboard\multi5_dashboard_server.py"
+start /MIN "NEXT-TRADE Dashboard" cmd /c "cd /d C:\nt_v1 && .venv\Scripts\python.exe tools\dashboard\multi5_dashboard_server.py"
 timeout /t 5 /nobreak >nul
 
 echo [3/3] Starting Engine Wrapper...
-start /MIN "NEXT-TRADE Engine" cmd /c "cd /d C:\next-trade-ver1.0 && .venv\Scripts\python.exe tools\multi5\run_multi5_engine.py --runtime-minutes 1440 --scan-interval-sec 5"
+start /MIN "NEXT-TRADE Engine" cmd /c "cd /d C:\nt_v1 && .venv\Scripts\python.exe tools\multi5\run_multi5_engine.py --runtime-minutes 1440 --scan-interval-sec 5"
 timeout /t 5 /nobreak >nul
 
 echo.
@@ -67,3 +67,4 @@ echo Background services setup complete!
 echo ====================================
 echo.
 pause
+

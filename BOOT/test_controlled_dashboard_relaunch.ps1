@@ -13,7 +13,7 @@ try {
     $beforeApi = 'ERROR:' + $_.Exception.Message
 }
 
-$hygiene = powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\next-trade-ver1.0\BOOT\dashboard_duplicate_process_hygiene.ps1' -Execute | Out-String
+$hygiene = powershell -NoProfile -ExecutionPolicy Bypass -File 'C:\nt_v1\BOOT\dashboard_duplicate_process_hygiene.ps1' -Execute | Out-String
 Start-Sleep -Seconds 8
 
 $after = @(Get-CimInstance Win32_Process | Where-Object {
@@ -39,3 +39,4 @@ try {
     after_listener_pid = (@($afterListeners | Select-Object -ExpandProperty OwningProcess -Unique) -join ',')
     after_api = $afterApi
 } | ConvertTo-Json -Depth 5
+

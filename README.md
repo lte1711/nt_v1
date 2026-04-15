@@ -8,7 +8,7 @@ NEXT-TRADE is a Windows-oriented trading runtime project that combines:
 
 ## Project root
 
-This repository is expected to run from its current checkout path. The main startup scripts now resolve the project root relative to their own file location, so the project no longer depends on a fixed install path such as `C:\next-trade-ver1.0`.
+This repository is expected to run from its current checkout path. The main startup scripts now resolve the project root relative to their own file location, so the project no longer depends on a previously fixed install path.
 
 ## Quick start
 

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Execute
 )
 
@@ -8,19 +8,19 @@ $targets = @(
     @{
         name = "observe_multi5_realtime.ps1"
         match = "*observe_multi5_realtime.ps1*"
-        restart = { & "C:\next-trade-ver1.0\BOOT\start_realtime_observe.ps1" | Out-Null }
+        restart = { & "C:\nt_v1\BOOT\start_realtime_observe.ps1" | Out-Null }
     },
     @{
         name = "collect_runtime_8h.ps1"
         match = "*collect_runtime_8h.ps1*"
-        restart = { & "C:\next-trade-ver1.0\BOOT\start_8h_collection.ps1" | Out-Null }
+        restart = { & "C:\nt_v1\BOOT\start_8h_collection.ps1" | Out-Null }
     },
     @{
         name = "phase5_portfolio_milestone_reporter.ps1"
         match = "*phase5_portfolio_milestone_reporter.ps1*"
         restart = {
             Start-Process -FilePath "powershell.exe" -ArgumentList @(
-                "-NoProfile","-ExecutionPolicy","Bypass","-File","C:\next-trade-ver1.0\BOOT\phase5_portfolio_milestone_reporter.ps1",
+                "-NoProfile","-ExecutionPolicy","Bypass","-File","C:\nt_v1\BOOT\phase5_portfolio_milestone_reporter.ps1",
                 "-IntervalSec","60","-DurationMinutes","1440"
             ) -WindowStyle Hidden | Out-Null
         }
@@ -30,7 +30,7 @@ $targets = @(
         match = "*first_order_milestone_reporter.ps1*"
         restart = {
             Start-Process -FilePath "powershell.exe" -ArgumentList @(
-                "-NoProfile","-ExecutionPolicy","Bypass","-File","C:\next-trade-ver1.0\BOOT\first_order_milestone_reporter.ps1",
+                "-NoProfile","-ExecutionPolicy","Bypass","-File","C:\nt_v1\BOOT\first_order_milestone_reporter.ps1",
                 "-IntervalSec","60","-DurationMinutes","360"
             ) -WindowStyle Hidden | Out-Null
         }
@@ -72,3 +72,4 @@ foreach ($target in $targets) {
 }
 
 $results | ConvertTo-Json -Depth 3
+

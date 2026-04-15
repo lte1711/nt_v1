@@ -1,6 +1,6 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
-$scriptPath = "C:\next-trade-ver1.0\BOOT\phase6_live_runtime_collector.ps1"
+$scriptPath = "C:\nt_v1\BOOT\phase6_live_runtime_collector.ps1"
 
 $existing = Get-CimInstance Win32_Process | Where-Object {
     $_.Name -eq "powershell.exe" -and
@@ -26,3 +26,4 @@ $proc = Start-Process -FilePath "powershell.exe" -ArgumentList $args -WindowStyl
 Start-Sleep -Seconds 1
 Write-Output "PHASE6_COLLECTOR_START=YES"
 Write-Output "PHASE6_COLLECTOR_PID=$($proc.Id)"
+

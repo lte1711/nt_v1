@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$MaxSnapshotAgeSec = 180,
     [int]$MaxHealthSummaryAgeSec = 90,
     [int]$MaxEngineLogAgeSec = 90,
@@ -7,9 +7,9 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\next-trade-ver1.0\BOOT\report_path_resolver.ps1"
+. "C:\nt_v1\BOOT\report_path_resolver.ps1"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = "C:\nt_v1"
 $healthPath = Join-Path $projectRoot "logs\runtime\runtime_health_summary.json"
 $engineLogPath = Join-Path $projectRoot "logs\runtime\multi5_runtime_events.jsonl"
 $workerLogPath = Join-Path $projectRoot "logs\runtime\profitmax_v1_events.jsonl"
@@ -220,3 +220,4 @@ $payload = [ordered]@{
 
 $payload | ConvertTo-Json -Depth 6 | Set-Content -Path $outPath -Encoding UTF8
 $payload | ConvertTo-Json -Depth 6
+

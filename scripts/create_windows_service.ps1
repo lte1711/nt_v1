@@ -1,4 +1,4 @@
-# NEXT-TRADE Windows 서비스 생성 스크립트
+﻿# NEXT-TRADE Windows 서비스 생성 스크립트
 # 모든 서버를 Windows 서비스로 등록
 
 param(
@@ -21,7 +21,7 @@ if (!(Test-Administrator)) {
 }
 
 # 변수 설정
-$PROJECT_ROOT = "C:\next-trade-ver1.0"
+$PROJECT_ROOT = "C:\nt_v1"
 $VENV_PYTHON = "$PROJECT_ROOT\.venv\Scripts\python.exe"
 $SERVICE_DIR = "$PROJECT_ROOT\services"
 
@@ -281,3 +281,4 @@ if ($Install) {
     Write-Host ""
     Write-Host "Note: This script requires administrator privileges." -ForegroundColor Yellow
 }
+

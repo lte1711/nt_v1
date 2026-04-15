@@ -1,4 +1,4 @@
-# NEXT-TRADE CONSTITUTION v1.2.1
+﻿# NEXT-TRADE CONSTITUTION v1.2.1
 
 ## Status
 
@@ -6,26 +6,26 @@
 CONSTITUTION_STATUS=ACTIVE
 CONSTITUTION_VERSION=1.2.1
 LAST_UPDATED=2026-03-29
-CONSTITUTION_FILE=C:\next-trade-ver1.0\instructions\NEXT-TRADE-CONSTITUTION-FINAL.md
+CONSTITUTION_FILE=C:\nt_v1\instructions\NEXT-TRADE-CONSTITUTION-FINAL.md
 APPROVAL_STATUS=TEAM_CONSENSUS_REQUIRED
 ```
 
 ## Root Paths
 
 ```text
-PROJECT_ROOT=C:\next-trade-ver1.0
-BOOT_ROOT=C:\next-trade-ver1.0\BOOT
-OFFICIAL_ENGINE_ENTRY=C:\next-trade-ver1.0\BOOT\start_engine.ps1
-VENV_ROOT=C:\next-trade-ver1.0\.venv
-TOOLS_ROOT=C:\next-trade-ver1.0\tools
-STRATEGY_ROOT=C:\next-trade-ver1.0\strategies
-SRC_ROOT=C:\next-trade-ver1.0\src
-DATA_ROOT=C:\next-trade-ver1.0\data
-LOG_ROOT=C:\next-trade-ver1.0\logs
-REPORT_ROOT=C:\next-trade-ver1.0\reports
-INSTRUCTION_ROOT=C:\next-trade-ver1.0\instructions
-VAR_ROOT=C:\next-trade-ver1.0\var
-OPS_UI_ROOT=C:\next-trade-ver1.0\evergreen-ops-ui
+PROJECT_ROOT=C:\nt_v1
+BOOT_ROOT=C:\nt_v1\BOOT
+OFFICIAL_ENGINE_ENTRY=C:\nt_v1\BOOT\start_engine.ps1
+VENV_ROOT=C:\nt_v1\.venv
+TOOLS_ROOT=C:\nt_v1\tools
+STRATEGY_ROOT=C:\nt_v1\strategies
+SRC_ROOT=C:\nt_v1\src
+DATA_ROOT=C:\nt_v1\data
+LOG_ROOT=C:\nt_v1\logs
+REPORT_ROOT=C:\nt_v1\reports
+INSTRUCTION_ROOT=C:\nt_v1\instructions
+VAR_ROOT=C:\nt_v1\var
+OPS_UI_ROOT=C:\nt_v1\evergreen-ops-ui
 LEGACY_ROOT=C:\projects
 ```
 
@@ -95,7 +95,7 @@ RUNTIME_STATS_USAGE=NON_KPI_REFERENCE_ONLY
 ## Runtime And Audit Facts Fixed In v1.2
 
 ```text
-PORTFOLIO_STATE_ENGINE_FILE=C:\next-trade-ver1.0\tools\portfolio_state_engine.py
+PORTFOLIO_STATE_ENGINE_FILE=C:\nt_v1\tools\portfolio_state_engine.py
 PORTFOLIO_STATE_ENGINE_MODE=IMPLEMENTED
 PORTFOLIO_STATE_DECISIONS=ALLOW|CAUTION|BLOCK
 RUNNER_ENTRY_QUALITY_DEFAULT=0.10
@@ -109,9 +109,9 @@ ALLOCATION_LOSS_FACTORS=negative_pnl_penalty|loss_penalty|negative_avg_penalty
 ## Backup Policy Fixed In v1.2.1
 
 ```text
-BACKUP_ROOT=C:\next-trade-ver1.0\var\backups
+BACKUP_ROOT=C:\nt_v1\var\backups
 ACTIVE_BACKUP_SERIES=v1.2.1
-ACTIVE_BACKUP_FOLDER=C:\next-trade-ver1.0\var\backups\v1.2.1
+ACTIVE_BACKUP_FOLDER=C:\nt_v1\var\backups\v1.2.1
 BACKUP_NAMING_RULE={relative_path}.{version}.{stage}.{timestamp}.bak
 BACKUP_STAGE_REQUIRED=YES
 BACKUP_STAGE_ALLOWED=pre_edit|post_edit|pre_run|post_run|pre_release|post_audit
@@ -154,7 +154,7 @@ UNKNOWN=not confirmable with currently available evidence
 ## Document Storage Rule
 
 ```text
-ROOT_REPORT_PATH=C:\next-trade-ver1.0\reports
+ROOT_REPORT_PATH=C:\nt_v1\reports
 DATE_FORMAT=YYYY-MM-DD
 ```
 
@@ -170,3 +170,4 @@ YYYY-MM-DD\
 - Each team member stores reports only in the matching role folder.
 - Daily folder creation responsibility order: `CODEX -> Candy -> BAEKSEOL`.
 - Purpose: date-based audit, execution trace, team flow trace, and evidence-chain reproduction.
+
