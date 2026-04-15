@@ -4,8 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 # PATH CONFIG
-$projectRoot  = "C:\next-trade-ver1.0"
-$bootRoot     = "C:\next-trade-ver1.0\BOOT"
+$bootRoot     = Split-Path -Parent $PSScriptRoot
+$projectRoot  = Split-Path -Parent $bootRoot
 $pythonExe    = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $engineScript = Join-Path $projectRoot "tools\multi5\run_multi5_engine.py"
 

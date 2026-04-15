@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$projectRoot = "C:\next-trade-ver1.0"
+$projectRoot = Split-Path -Parent $PSScriptRoot
 . (Join-Path $projectRoot "BOOT\common_process_helpers.ps1")
 $cmdPath = Join-Path $projectRoot "tools\ops\run_api_8100.cmd"
 

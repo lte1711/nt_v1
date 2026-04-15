@@ -83,6 +83,22 @@ def describe_equity_source(source: str) -> str:
     return mapping.get(source, source or "-")
 
 
+def _dedupe_equity_points(points: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    unique: list[dict[str, Any]] = []
+    seen: set[tuple[str, float]] = set()
+    for point in points:
+        ts = str(point.get("ts") or "").strip()
+        equity = parse_float(point.get("equity"), default=-1.0)
+        if not ts or equity <= 0.0:
+            continue
+        key = (ts, round(equity, 6))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append({"ts": ts, "equity": round(equity, 6)})
+    return unique
+
+
 def tail_jsonl(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -253,7 +269,7 @@ def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dic
                     })
                 
                 # 시간순 정렬
-                points = sorted(points, key=lambda item: item["ts"])
+                points = _dedupe_equity_points(sorted(points, key=lambda item: item["ts"]))
                 
                 print(f"DEBUG: Generated {len(points)} real-time equity points from API")
                 
@@ -297,7 +313,7 @@ def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dic
         print(f"DEBUG: Found {len(points)} equity points from events log")
         
         if points:
-            points = sorted(points, key=lambda item: item["ts"])
+            points = _dedupe_equity_points(sorted(points, key=lambda item: item["ts"]))
             _EQUITY_HISTORY_CACHE["ts"] = now
             _EQUITY_HISTORY_CACHE["data"] = points
             return points

@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
-$projectRoot = "C:\next-trade-ver1.0"
-$scriptPath = "C:\next-trade-ver1.0\BOOT\phase5_autoguard.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$scriptPath = Join-Path $projectRoot "BOOT\phase5_autoguard.ps1"
 $reportResolverPath = Join-Path $projectRoot "BOOT\report_path_resolver.ps1"
 $maxHealthyLogAgeSec = 120
 

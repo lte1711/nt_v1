@@ -1,4 +1,5 @@
-﻿$script:NtReportRoot = "C:\next-trade-ver1.0\reports"
+$script:NtProjectRoot = Split-Path -Parent $PSScriptRoot
+$script:NtReportRoot = Join-Path $script:NtProjectRoot "reports"
 
 function Get-NtTodayReportDateString {
     return (Get-Date).ToString("yyyy-MM-dd")
@@ -42,4 +43,3 @@ function Resolve-NtRoleReportFile {
     }
     return (Join-Path $dir $FileName)
 }
-

@@ -7,7 +7,7 @@ param(
 )
 
 # 프로젝트 루트 경로
-$PROJECT_ROOT = "C:\next-trade-ver1.0"
+$PROJECT_ROOT = Split-Path -Parent $PSScriptRoot
 $VENV_PYTHON = "$PROJECT_ROOT\.venv\Scripts\python.exe"
 $LOG_DIR = "$PROJECT_ROOT\logs\background_services"
 

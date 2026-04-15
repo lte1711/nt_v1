@@ -1,0 +1,34 @@
+# NEXT-TRADE
+
+NEXT-TRADE is a Windows-oriented trading runtime project that combines:
+
+- a FastAPI ops/investor API on port `8100`
+- a dashboard server on port `8788`
+- a Multi5 engine runtime and supporting watchdog scripts
+
+## Project root
+
+This repository is expected to run from its current checkout path. The main startup scripts now resolve the project root relative to their own file location, so the project no longer depends on a fixed install path such as `C:\next-trade-ver1.0`.
+
+## Quick start
+
+Use the virtual environment in `.venv` and start the full local stack:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start_project.ps1
+```
+
+## Verification
+
+Run the built-in checks with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_checks.ps1
+```
+
+This verification path uses:
+
+- `py_compile` for core Python entry points
+- `unittest discover` for the test suite in `tests/`
+
+`pytest` is not required for the default verification path.

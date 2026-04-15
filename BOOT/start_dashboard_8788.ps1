@@ -6,7 +6,7 @@
 )
 
 $ErrorActionPreference = 'Stop'
-$projectRoot = 'C:\next-trade-ver1.0'
+$projectRoot = Split-Path -Parent $PSScriptRoot
 . (Join-Path $projectRoot 'BOOT\common_process_helpers.ps1')
 $pythonExe = Join-Path $projectRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path $pythonExe)) {
