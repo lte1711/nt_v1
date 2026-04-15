@@ -32,3 +32,17 @@ This verification path uses:
 - `unittest discover` for the test suite in `tests/`
 
 `pytest` is not required for the default verification path.
+
+## Smoke test
+
+After startup, run a short runtime smoke test with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\smoke_test.ps1
+```
+
+This validates:
+
+- API TCP + HTTP health on `8100`
+- dashboard TCP + HTTP health on `8788`
+- engine process presence
