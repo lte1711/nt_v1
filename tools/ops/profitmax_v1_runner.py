@@ -119,7 +119,7 @@ class RunnerConfig:
     primary_bar_sec: int = 300
     daily_stop_loss: float = -30.0
     max_execution_limit_per_session: int = 1
-    daily_take_profit: float = 45.0
+    daily_take_profit: float = 303.57  # 3% of initial equity (10,119.14 USDT)
     max_consecutive_loss: int = 5
     max_trades_per_day: int = 12
     day_flat_hour_kst: int = 23
@@ -2541,11 +2541,23 @@ class ProfitMaxV1Runner:
         self.daily_trades = 0
         self.daily_loss_streak = 0
         self.last_day_flat_key = None
+        
+        # Calculate 3% daily profit target based on initial equity
+        initial_equity = 10119.13907373  # Base equity from config.json
+        target_profit_pct = 0.03  # 3% target
+        self.daily_take_profit_target = round(initial_equity * target_profit_pct, 2)
+        
         self._log_event(
             "DAILY_RESET",
             {
                 "day_key": day_key,
                 "profile": self.config.profile,
+                "daily_realized_pnl": 0.0,
+                "daily_trades": 0,
+                "daily_loss_streak": 0,
+                "daily_take_profit_target": self.daily_take_profit_target,
+                "target_percentage": target_profit_pct * 100,
+                "initial_equity": initial_equity,
             },
         )
 
@@ -2737,7 +2749,9 @@ class ProfitMaxV1Runner:
             return "MAX_CONSECUTIVE_LOSS"
         if self.daily_realized_pnl <= self.config.daily_stop_loss:
             return "DAILY_STOP_LOSS"
-        if self.daily_realized_pnl >= self.config.daily_take_profit:
+        # Use dynamic 3% target if available, otherwise fallback to config
+        target_profit = getattr(self, 'daily_take_profit_target', self.config.daily_take_profit)
+        if self.daily_realized_pnl >= target_profit:
             return "DAILY_TAKE_PROFIT_LOCK"
         if (
             self.last_price_ts
