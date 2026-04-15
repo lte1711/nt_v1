@@ -208,15 +208,15 @@ def calculate_entry_quality_score(
     current_long_ratio: float = 0.5,
     current_short_ratio: float = 0.5,
     signal_side: str = "",
-    win_rate_soft_limit: float = 0.45,
-    drawdown_soft_limit: float = 0.05,
+    win_rate_soft_limit: float = 0.35,  # Reduced from 0.45 to 0.35
+    drawdown_soft_limit: float = 0.10,  # Increased from 0.05 to 0.10
 ) -> float:
     score = abs(float(signal_score))
 
     if portfolio_total_trades >= 5 and portfolio_win_rate < win_rate_soft_limit:
-        score -= 0.10
+        score -= 0.05  # Reduced from 0.10 to 0.05
     if portfolio_drawdown > drawdown_soft_limit:
-        score -= 0.15
+        score -= 0.08  # Reduced from 0.15 to 0.08
     if portfolio_total_trades >= 3 and total_pnl < 0:
         score -= 0.05
 
