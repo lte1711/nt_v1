@@ -20,7 +20,7 @@ $args = @(
     "-ExecutionPolicy", "Bypass",
     "-File", "`"$scriptPath`"",
     "-IntervalSec", "30",
-    "-ObserveMinutes", "480",
+    "-ObserveMinutes", "10080",
     "-StaleSec", "300"
 )
 

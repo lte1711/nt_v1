@@ -2775,6 +2775,13 @@ class ProfitMaxV1Runner:
         vol = self._current_vol()
         return 0.00045 <= vol <= 0.0025
 
+    def _detect_3min_drop(self) -> bool:
+        """Graph-based 3-minute drop detection"""
+        if len(self.prices) < 3:
+            return False
+        drop = (self.prices[-1] - self.prices[-3]) / self.prices[-3]
+        return drop <= -0.02  # -2% drop in 3 minutes
+
     def _range_scalp_signal(self, regime: str) -> dict[str, Any]:
         if regime != "range" or len(self.prices) < 40:
             return {}
@@ -2784,12 +2791,17 @@ class ProfitMaxV1Runner:
         sigma = pstdev(window) if len(window) > 1 else 0.0
         z = (price - mu) / sigma if sigma > 0 else 0.0
         mean_reversion_signal = abs(z) >= 1.15 and abs(z) <= 3.4
+        # Enhanced graph-based signal: 3-minute drop detection
+        drop_3min = self._detect_3min_drop()
         spread_ok = self._spread_ok_proxy()
         volatility_ok = self._volatility_ok()
         guard_reason = self._intraday_guard_reason()
         guard_ok = guard_reason == ""
         direction = 0
-        if mean_reversion_signal:
+        # Combine signals: mean reversion + 3-minute drop for stronger LONG signal
+        if mean_reversion_signal and z < 0 and drop_3min:
+            direction = 1  # Strong LONG signal on drop + reversal
+        elif mean_reversion_signal:
             direction = 1 if z < 0 else -1
         return {
             "mode": "RANGE_SCALP",

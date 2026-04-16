@@ -11,13 +11,27 @@ $pythonExe    = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $engineScript = Join-Path $projectRoot "tools\multi5\run_multi5_engine.py"
 
 # RUNTIME CONFIG
-$runtimeMinutes       = 480
+$runtimeMinutes       = 10080
 $scanIntervalSec      = 5
 $engineSessionHours   = 2.0
 $maxOpenPositions     = 5
 $maxSymbolActive      = 5
 $maxPositionPerSymbol = 1
 $launchCooldownSec    = 120
+
+$runtimeMinutesOverride = [Environment]::GetEnvironmentVariable("NT_ENGINE_RUNTIME_MINUTES", "Process")
+if ([string]::IsNullOrWhiteSpace($runtimeMinutesOverride)) {
+    $runtimeMinutesOverride = [Environment]::GetEnvironmentVariable("NT_ENGINE_RUNTIME_MINUTES", "User")
+}
+if ([string]::IsNullOrWhiteSpace($runtimeMinutesOverride)) {
+    $runtimeMinutesOverride = [Environment]::GetEnvironmentVariable("NT_ENGINE_RUNTIME_MINUTES", "Machine")
+}
+if (-not [string]::IsNullOrWhiteSpace($runtimeMinutesOverride)) {
+    $parsedRuntimeMinutes = 0
+    if ([int]::TryParse($runtimeMinutesOverride, [ref]$parsedRuntimeMinutes) -and $parsedRuntimeMinutes -gt 0) {
+        $runtimeMinutes = $parsedRuntimeMinutes
+    }
+}
 
 function Get-EngineProcesses {
     try {

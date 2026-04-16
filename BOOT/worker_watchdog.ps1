@@ -1,20 +1,20 @@
 ﻿param(
     [int]$IntervalSec = 30,
-    [int]$ObserveMinutes = 480,
+    [int]$ObserveMinutes = 10080,
     [int]$StaleSec = 300
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\nt_v1\BOOT\report_path_resolver.ps1"
-
-$projectRoot = "C:\nt_v1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$bootRoot = Join-Path $projectRoot "BOOT"
+. (Join-Path $bootRoot "report_path_resolver.ps1")
 $pythonExe = Join-Path $projectRoot ".venv\Scripts\python.exe"
 if (-not (Test-Path $pythonExe)) {
     $pythonExe = Join-Path $projectRoot "venv\Scripts\python.exe"
 }
 $workerScript = Join-Path $projectRoot "tools\ops\profitmax_v1_runner.py"
-$workerLogPath = "C:\nt_v1\logs\runtime\profitmax_v1_events.jsonl"
-$workerSummaryPath = "C:\nt_v1\logs\runtime\profitmax_v1_summary.json"
+$workerLogPath = Join-Path $projectRoot "logs\runtime\profitmax_v1_events.jsonl"
+$workerSummaryPath = Join-Path $projectRoot "logs\runtime\profitmax_v1_summary.json"
 $dashboardRuntimeApi = "http://127.0.0.1:8788/api/runtime"
 $guardLog = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "worker_watchdog_log.txt" -EnsureParent
 $endAt = (Get-Date).AddMinutes($ObserveMinutes)
@@ -72,16 +72,18 @@ function Resolve-RecoverySymbols {
     try {
         $snap = Invoke-RestMethod -Uri $dashboardRuntimeApi -Method Get -TimeoutSec 10
         if ($snap.position_status -eq "OPEN" -and $snap.current_position_symbol -and $snap.current_position_symbol -ne "-") {
-            return @([string]$snap.current_position_symbol)
-        }
-        if ($snap.current_selected_symbol -and $snap.current_selected_symbol -ne "-") {
-            return @([string]$snap.current_selected_symbol)
-        }
-        if ($snap.selected_symbol -and $snap.selected_symbol -ne "-") {
-            return @([string]$snap.selected_symbol)
+            $positionSymbols = @(
+                ([string]$snap.current_position_symbol).Split(",") |
+                ForEach-Object { $_.Trim().ToUpperInvariant() } |
+                Where-Object { $_ }
+            )
+            if ($positionSymbols.Count -gt 0) {
+                return @($positionSymbols | Select-Object -Unique)
+            }
         }
     } catch {}
-    return @("BTCUSDT")
+
+    return @()
 }
 
 function Restart-Worker([string]$symbol) {
@@ -118,14 +120,22 @@ while ((Get-Date) -lt $endAt) {
 
     if ($workers.Count -eq 0) {
         $symbols = @(Resolve-RecoverySymbols)
-        Write-GuardLog "WORKER_MISSING log_age_sec=$logAge symbols=$($symbols -join ',')"
-        foreach ($symbol in $symbols) {
-            Restart-Worker -symbol $symbol
+        if ($symbols.Count -eq 0) {
+            Write-GuardLog "WORKER_MISSING_NO_OPEN_POSITIONS log_age_sec=$logAge action=skip_restart"
+        } else {
+            Write-GuardLog "WORKER_MISSING log_age_sec=$logAge symbols=$($symbols -join ',')"
+            foreach ($symbol in $symbols) {
+                Restart-Worker -symbol $symbol
+            }
         }
     } elseif ($logAge -gt $StaleSec) {
         $symbols = @(Resolve-RecoverySymbols)
         $pids = ($workers | Select-Object -ExpandProperty ProcessId) -join ","
-        Write-GuardLog "WORKER_STALE log_age_sec=$logAge symbols=$($symbols -join ',') kill_old_pids=$pids"
+        if ($symbols.Count -eq 0) {
+            Write-GuardLog "WORKER_STALE_NO_OPEN_POSITIONS log_age_sec=$logAge kill_old_pids=$pids action=stop_without_restart"
+        } else {
+            Write-GuardLog "WORKER_STALE log_age_sec=$logAge symbols=$($symbols -join ',') kill_old_pids=$pids"
+        }
         foreach ($w in $workers) {
             try { Stop-Process -Id $w.ProcessId -Force } catch {}
         }

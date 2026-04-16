@@ -1,8 +1,9 @@
 ﻿$ErrorActionPreference = "Stop"
 
-$guardScript = "C:\nt_v1\BOOT\runtime_guard.ps1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$guardScript = Join-Path $projectRoot "BOOT\runtime_guard.ps1"
 $intervalSec = 30
-$observeMinutes = 480
+$observeMinutes = 10080
 
 $mutexName = "Global\NextTrade_RuntimeGuard_Start"
 $mutex = New-Object System.Threading.Mutex($false, $mutexName)

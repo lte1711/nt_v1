@@ -68,7 +68,8 @@ class MomentumIntradayV1:
 
         # Relax the intraday trigger slightly so valid momentum setups do not
         # collapse into HOLD during normal testnet noise.
-        if roc > 0.35 and 55.0 < rsi < 82.0 and price > sma and volume_ratio > 0.85:
+        # Enhanced volume filter for graph-based signals (0.85 -> 2.0)
+        if roc > 0.35 and 55.0 < rsi < 82.0 and price > sma and volume_ratio >= 2.0:
             return "LONG"
         if roc < -0.3 and rsi < 45.0 and price < sma:
             return "SHORT"

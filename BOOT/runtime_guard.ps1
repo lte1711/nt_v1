@@ -1,13 +1,12 @@
 ﻿param(
     [int]$IntervalSec = 30,
-    [int]$ObserveMinutes = 480
+    [int]$ObserveMinutes = 10080
 )
 
 $ErrorActionPreference = "Continue"
-. "C:\nt_v1\BOOT\report_path_resolver.ps1"
-
-$bootRoot = "C:\nt_v1\BOOT"
-$projectRoot = "C:\nt_v1"
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$bootRoot = Join-Path $projectRoot "BOOT"
+. (Join-Path $bootRoot "report_path_resolver.ps1")
 $guardLog = Resolve-NtRoleReportFile -RoleFolder "honey_execution_reports" -FileName "runtime_guard_log.txt" -EnsureParent
 $endAt = (Get-Date).AddMinutes($ObserveMinutes)
 
