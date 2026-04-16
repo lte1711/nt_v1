@@ -121,7 +121,7 @@ class AllocationRuntimeFixTests(unittest.TestCase):
         self.assertAlmostEqual(top["diversification_penalty"], 0.24, places=6)
         self.assertAlmostEqual(top["blocked_symbol_penalty"], 0.36, places=6)
 
-    def test_build_symbol_state_can_emit_reactive_long_signal(self) -> None:
+    def test_build_symbol_state_can_emit_asia_reactive_long_signal(self) -> None:
         closes_1m = [
             100.0, 100.02, 100.04, 100.03, 100.01, 99.98, 99.95, 99.92, 99.88, 99.84,
             99.8, 99.78, 99.74, 99.71, 99.67, 99.62, 99.58, 99.55, 99.51, 99.48,
@@ -135,7 +135,7 @@ class AllocationRuntimeFixTests(unittest.TestCase):
         ]
         volumes_5m = [5000.0] * len(closes_5m)
 
-        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="ACTIVE"):
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="ASIA_REVERSION"):
             state = build_symbol_state("BTCUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
 
         self.assertEqual(state["strategy_signal"], "LONG")
@@ -144,17 +144,89 @@ class AllocationRuntimeFixTests(unittest.TestCase):
         self.assertGreater(state["strategy_signal_score"], 0.0)
         self.assertEqual(state["trigger_direction"], "DROP_REVERSION")
 
-    def test_build_symbol_state_blocks_reactive_signal_in_strong_trend(self) -> None:
+    def test_build_symbol_state_blocks_asia_reactive_signal_in_strong_trend(self) -> None:
         closes_1m = [100.0] * 27 + [102.5, 103.5, 104.0]
         volumes_1m = [1000.0] * 27 + [1800.0, 2200.0, 2600.0]
         closes_5m = [100.0 + (i * 0.4) for i in range(30)]
         volumes_5m = [5000.0] * len(closes_5m)
 
-        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="ACTIVE"):
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="ASIA_REVERSION"):
             state = build_symbol_state("BTCUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
 
         self.assertEqual(state["strategy_signal"], "HOLD")
-        self.assertEqual(state["time_window_mode"], "ACTIVE")
+        self.assertEqual(state["time_window_mode"], "ASIA_REVERSION")
+
+    def test_build_symbol_state_can_emit_europe_trend_signal(self) -> None:
+        closes_1m = [
+            100.0, 100.08, 100.14, 100.2, 100.28, 100.34, 100.4, 100.45, 100.53, 100.6,
+            100.68, 100.73, 100.8, 100.88, 100.96, 101.04, 101.1, 101.18, 101.27, 101.35,
+            101.44, 101.52, 101.6, 101.7, 101.8, 101.9, 102.0, 102.12, 102.24, 102.36,
+        ]
+        volumes_1m = [1000.0] * 24 + [1200.0, 1250.0, 1300.0, 1400.0, 1500.0, 1600.0]
+        closes_5m = [100.0 + (i * 0.18) for i in range(30)]
+        volumes_5m = [5000.0] * len(closes_5m)
+
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="EUROPE_TREND"), patch(
+            "tools.multi5.multi5_symbol_scanner.MOMENTUM_INTRADAY.evaluate",
+            return_value={
+                "signal": "LONG",
+                "signal_score": 0.92,
+                "close": closes_1m[-1],
+                "roc_10": 0.9,
+                "rsi_14": 63.0,
+                "sma_20": 101.4,
+                "volume_ratio": 1.15,
+            },
+        ):
+            state = build_symbol_state("ETHUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
+
+        self.assertEqual(state["time_window_mode"], "EUROPE_TREND")
+        self.assertEqual(state["strategy_id"], "session_trend_v1")
+        self.assertEqual(state["strategy_signal"], "LONG")
+        self.assertEqual(state["strategy_signal_source"], "trend_follow")
+        self.assertEqual(state["trigger_direction"], "TREND_CONTINUATION")
+
+    def test_build_symbol_state_can_emit_us_breakout_signal(self) -> None:
+        closes_1m = [
+            100.0, 100.04, 100.08, 100.12, 100.15, 100.2, 100.25, 100.29, 100.34, 100.38,
+            100.41, 100.45, 100.48, 100.52, 100.56, 100.61, 100.64, 100.68, 100.72, 100.77,
+            100.8, 100.84, 100.89, 100.95, 101.0, 101.05, 101.12, 101.4, 101.85, 102.35,
+        ]
+        volumes_1m = [1000.0] * 26 + [1300.0, 1700.0, 2200.0, 2800.0]
+        closes_5m = [100.0 + (i * 0.16) for i in range(30)]
+        volumes_5m = [5000.0] * len(closes_5m)
+
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="US_BREAKOUT"), patch(
+            "tools.multi5.multi5_symbol_scanner.MOMENTUM_INTRADAY.evaluate",
+            return_value={
+                "signal": "LONG",
+                "signal_score": 0.88,
+                "close": closes_1m[-1],
+                "roc_10": 1.1,
+                "rsi_14": 66.0,
+                "sma_20": 101.2,
+                "volume_ratio": 1.9,
+            },
+        ):
+            state = build_symbol_state("BTCUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
+
+        self.assertEqual(state["time_window_mode"], "US_BREAKOUT")
+        self.assertEqual(state["strategy_id"], "us_breakout_v1")
+        self.assertEqual(state["strategy_signal"], "LONG")
+        self.assertEqual(state["strategy_signal_source"], "volatility_breakout")
+        self.assertEqual(state["trigger_direction"], "BREAKOUT_UP")
+
+    def test_build_symbol_state_blocks_outside_core_windows(self) -> None:
+        closes_1m = [100.0 + (i * 0.02) for i in range(30)]
+        volumes_1m = [1000.0] * len(closes_1m)
+        closes_5m = [100.0 + (i * 0.03) for i in range(30)]
+        volumes_5m = [5000.0] * len(closes_5m)
+
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="BLOCKED"):
+            state = build_symbol_state("XRPUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
+
+        self.assertEqual(state["strategy_signal"], "HOLD")
+        self.assertEqual(state["time_window_mode"], "BLOCKED")
 
     def test_collect_signal_target_symbols_includes_candidates_active_and_open(self) -> None:
         targets = collect_signal_target_symbols(

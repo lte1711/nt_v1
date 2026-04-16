@@ -42,14 +42,18 @@ _UNIVERSE_CACHE: dict[str, Any] = {
     "expires_at": datetime.now(timezone.utc),
 }
 KST = timezone(timedelta(hours=9))
-ACTIVE_WINDOW_START = time(9, 30)
-ACTIVE_WINDOW_END = time(11, 30)
-SELECTIVE_WINDOW_START = time(12, 0)
-SELECTIVE_WINDOW_END = time(12, 30)
 REACTIVE_STRATEGY_ID = "reactive_reversion_v1"
 REACTIVE_STRATEGY_UNIT = "FACT_REACTIVE_REVERSION"
 REACTIVE_TP_PCT = 0.010
 REACTIVE_SL_PCT = 0.006
+TREND_STRATEGY_ID = "session_trend_v1"
+TREND_STRATEGY_UNIT = "FACT_SESSION_TREND"
+TREND_TP_PCT = 0.012
+TREND_SL_PCT = 0.006
+BREAKOUT_STRATEGY_ID = "us_breakout_v1"
+BREAKOUT_STRATEGY_UNIT = "FACT_US_BREAKOUT"
+BREAKOUT_TP_PCT = 0.012
+BREAKOUT_SL_PCT = 0.007
 
 
 def calculate_edge_score(prices: list[float]) -> float:
@@ -98,10 +102,12 @@ def _kst_now() -> datetime:
 
 def _resolve_time_window() -> str:
     now_time = _kst_now().time()
-    if ACTIVE_WINDOW_START <= now_time <= ACTIVE_WINDOW_END:
-        return "ACTIVE"
-    if SELECTIVE_WINDOW_START <= now_time <= SELECTIVE_WINDOW_END:
-        return "SELECTIVE"
+    if time(9, 30) <= now_time <= time(11, 30):
+        return "ASIA_REVERSION"
+    if time(16, 0) <= now_time <= time(18, 0):
+        return "EUROPE_TREND"
+    if now_time >= time(22, 0) or now_time <= time(2, 0):
+        return "US_BREAKOUT"
     return "BLOCKED"
 
 
@@ -139,15 +145,11 @@ def _build_reactive_signal(
     volume_ratio = (latest_volume / avg_volume) if avg_volume > 0 else 0.0
 
     is_strong_trend = trend_strength >= 0.0016 and regime == "trend"
-    allow_reactive = regime in {"range", "high_vol"} and not is_strong_trend and window_mode != "BLOCKED"
+    allow_reactive = regime in {"range", "high_vol"} and not is_strong_trend and window_mode == "ASIA_REVERSION"
 
     shock_threshold = 2.0
     volume_threshold = 1.6
     score_multiplier = 1.0
-    if window_mode == "SELECTIVE":
-        shock_threshold = 2.3
-        volume_threshold = 1.9
-        score_multiplier = 0.85
 
     signal = "HOLD"
     signal_source = "reactive_filter_block"
@@ -195,6 +197,133 @@ def _build_reactive_signal(
         "volume_ratio": round(volume_ratio, 6),
         "momentum_signal": str(momentum_eval.get("signal", "HOLD")),
         "momentum_score": float(momentum_eval.get("signal_score", 0.0) or 0.0),
+    }
+
+
+def _build_trend_signal(
+    *,
+    symbol: str,
+    closes_1m: list[float],
+    volumes_1m: list[float],
+    closes_5m: list[float],
+    momentum_eval: dict[str, Any],
+) -> dict[str, Any]:
+    market_data = MOMENTUM_INTRADAY.build_market_data(closes_1m, volumes_1m)
+    regime_obs = _analyze_regime(closes_5m)
+    regime = str(regime_obs.get("regime", "range"))
+    trend_strength = float(regime_obs.get("trend_strength", 0.0) or 0.0)
+    volatility = float(regime_obs.get("volatility", 0.0) or 0.0)
+    window_mode = _resolve_time_window()
+    signal = "HOLD"
+    signal_source = "trend_filter_block"
+    signal_score = 0.0
+
+    momentum_signal = str(momentum_eval.get("signal", "HOLD")).upper().strip()
+    momentum_score = float(momentum_eval.get("signal_score", 0.0) or 0.0)
+    volume_ratio = float(market_data.get("volume_ratio", 0.0) or 0.0)
+    roc_10 = float(market_data.get("roc_10", 0.0) or 0.0)
+
+    if (
+        window_mode == "EUROPE_TREND"
+        and regime in {"trend", "high_vol"}
+        and trend_strength >= 0.0008
+        and volume_ratio >= 0.9
+        and momentum_signal in {"LONG", "SHORT"}
+    ):
+        signal = momentum_signal
+        signal_source = "trend_follow"
+        signal_score = round(max(0.5, min(1.8, momentum_score + abs(roc_10) / 6.0)), 6)
+
+    return {
+        "symbol": symbol,
+        "strategy_id": TREND_STRATEGY_ID,
+        "strategy_unit": TREND_STRATEGY_UNIT,
+        "signal": signal,
+        "signal_score": signal_score,
+        "expected_edge": signal_score,
+        "take_profit_pct": TREND_TP_PCT,
+        "stop_loss_pct": TREND_SL_PCT,
+        "regime": regime,
+        "trend_strength": trend_strength,
+        "volatility": volatility,
+        "time_window_mode": window_mode,
+        "reactive_signal_source": signal_source,
+        "trigger_direction": "TREND_CONTINUATION" if signal in {"LONG", "SHORT"} else "",
+        "shock_move_1m_pct": round(_shock_move_pct(closes_1m, 1), 6),
+        "shock_move_2m_pct": round(_shock_move_pct(closes_1m, 2), 6),
+        "shock_move_3m_pct": round(_shock_move_pct(closes_1m, 3), 6),
+        "close": float(market_data.get("close", 0.0) or 0.0),
+        "roc_10": roc_10,
+        "rsi_14": float(market_data.get("rsi_14", 50.0) or 50.0),
+        "sma_20": float(market_data.get("sma_20", 0.0) or 0.0),
+        "volume_ratio": round(volume_ratio, 6),
+        "momentum_signal": momentum_signal,
+        "momentum_score": momentum_score,
+    }
+
+
+def _build_breakout_signal(
+    *,
+    symbol: str,
+    closes_1m: list[float],
+    volumes_1m: list[float],
+    closes_5m: list[float],
+    momentum_eval: dict[str, Any],
+) -> dict[str, Any]:
+    market_data = MOMENTUM_INTRADAY.build_market_data(closes_1m, volumes_1m)
+    regime_obs = _analyze_regime(closes_5m)
+    regime = str(regime_obs.get("regime", "range"))
+    trend_strength = float(regime_obs.get("trend_strength", 0.0) or 0.0)
+    volatility = float(regime_obs.get("volatility", 0.0) or 0.0)
+    window_mode = _resolve_time_window()
+    signal = "HOLD"
+    signal_source = "breakout_filter_block"
+    signal_score = 0.0
+
+    move_3m = _shock_move_pct(closes_1m, 3)
+    volume_ratio = float(market_data.get("volume_ratio", 0.0) or 0.0)
+    momentum_signal = str(momentum_eval.get("signal", "HOLD")).upper().strip()
+    momentum_score = float(momentum_eval.get("signal_score", 0.0) or 0.0)
+
+    if (
+        window_mode == "US_BREAKOUT"
+        and regime in {"trend", "high_vol"}
+        and volume_ratio >= 1.5
+        and abs(move_3m) >= 1.0
+    ):
+        if move_3m > 0 and momentum_signal != "SHORT":
+            signal = "LONG"
+        elif move_3m < 0 and momentum_signal != "LONG":
+            signal = "SHORT"
+        if signal in {"LONG", "SHORT"}:
+            signal_source = "volatility_breakout"
+            signal_score = round(max(0.6, min(2.0, abs(move_3m) * 0.45 + volume_ratio * 0.3 + momentum_score * 0.2)), 6)
+
+    return {
+        "symbol": symbol,
+        "strategy_id": BREAKOUT_STRATEGY_ID,
+        "strategy_unit": BREAKOUT_STRATEGY_UNIT,
+        "signal": signal,
+        "signal_score": signal_score,
+        "expected_edge": signal_score,
+        "take_profit_pct": BREAKOUT_TP_PCT,
+        "stop_loss_pct": BREAKOUT_SL_PCT,
+        "regime": regime,
+        "trend_strength": trend_strength,
+        "volatility": volatility,
+        "time_window_mode": window_mode,
+        "reactive_signal_source": signal_source,
+        "trigger_direction": "BREAKOUT_UP" if signal == "LONG" else "BREAKOUT_DOWN" if signal == "SHORT" else "",
+        "shock_move_1m_pct": round(_shock_move_pct(closes_1m, 1), 6),
+        "shock_move_2m_pct": round(_shock_move_pct(closes_1m, 2), 6),
+        "shock_move_3m_pct": round(move_3m, 6),
+        "close": float(market_data.get("close", 0.0) or 0.0),
+        "roc_10": float(market_data.get("roc_10", 0.0) or 0.0),
+        "rsi_14": float(market_data.get("rsi_14", 50.0) or 50.0),
+        "sma_20": float(market_data.get("sma_20", 0.0) or 0.0),
+        "volume_ratio": round(volume_ratio, 6),
+        "momentum_signal": momentum_signal,
+        "momentum_score": momentum_score,
     }
 
 
@@ -247,16 +376,61 @@ def build_symbol_state(
     regime_obs = _analyze_regime(closes_5m)
     regime = str(regime_obs.get("regime", "range"))
     strategy_eval = MOMENTUM_INTRADAY.evaluate(symbol, closes_1m, volumes_1m)
-    reactive_eval = _build_reactive_signal(
-        symbol=symbol,
-        closes_1m=closes_1m,
-        volumes_1m=volumes_1m,
-        closes_5m=closes_5m,
-        momentum_eval=strategy_eval,
-    )
-    signal = str(reactive_eval.get("signal", "HOLD"))
-    strategy_score = float(reactive_eval.get("signal_score", 0.0) or 0.0)
-    signal_source = str(reactive_eval.get("reactive_signal_source", "reactive_filter_block"))
+    window_mode = _resolve_time_window()
+    if window_mode == "ASIA_REVERSION":
+        selected_eval = _build_reactive_signal(
+            symbol=symbol,
+            closes_1m=closes_1m,
+            volumes_1m=volumes_1m,
+            closes_5m=closes_5m,
+            momentum_eval=strategy_eval,
+        )
+    elif window_mode == "EUROPE_TREND":
+        selected_eval = _build_trend_signal(
+            symbol=symbol,
+            closes_1m=closes_1m,
+            volumes_1m=volumes_1m,
+            closes_5m=closes_5m,
+            momentum_eval=strategy_eval,
+        )
+    elif window_mode == "US_BREAKOUT":
+        selected_eval = _build_breakout_signal(
+            symbol=symbol,
+            closes_1m=closes_1m,
+            volumes_1m=volumes_1m,
+            closes_5m=closes_5m,
+            momentum_eval=strategy_eval,
+        )
+    else:
+        selected_eval = {
+            "symbol": symbol,
+            "strategy_id": REACTIVE_STRATEGY_ID,
+            "strategy_unit": REACTIVE_STRATEGY_UNIT,
+            "signal": "HOLD",
+            "signal_score": 0.0,
+            "expected_edge": 0.0,
+            "take_profit_pct": REACTIVE_TP_PCT,
+            "stop_loss_pct": REACTIVE_SL_PCT,
+            "regime": regime,
+            "trend_strength": float(regime_obs.get("trend_strength", 0.0) or 0.0),
+            "volatility": float(regime_obs.get("volatility", 0.0) or 0.0),
+            "time_window_mode": window_mode,
+            "reactive_signal_source": "reactive_filter_block",
+            "trigger_direction": "",
+            "shock_move_1m_pct": round(_shock_move_pct(closes_1m, 1), 6),
+            "shock_move_2m_pct": round(_shock_move_pct(closes_1m, 2), 6),
+            "shock_move_3m_pct": round(_shock_move_pct(closes_1m, 3), 6),
+            "close": float(strategy_eval.get("close", 0.0) or 0.0),
+            "roc_10": float(strategy_eval.get("roc_10", 0.0) or 0.0),
+            "rsi_14": float(strategy_eval.get("rsi_14", 50.0) or 50.0),
+            "sma_20": float(strategy_eval.get("sma_20", 0.0) or 0.0),
+            "volume_ratio": float(strategy_eval.get("volume_ratio", 0.0) or 0.0),
+            "momentum_signal": str(strategy_eval.get("signal", "HOLD")),
+            "momentum_score": float(strategy_eval.get("signal_score", 0.0) or 0.0),
+        }
+    signal = str(selected_eval.get("signal", "HOLD"))
+    strategy_score = float(selected_eval.get("signal_score", 0.0) or 0.0)
+    signal_source = str(selected_eval.get("reactive_signal_source", "reactive_filter_block"))
     boosted_edge = edge_score + (strategy_score if signal in {"LONG", "SHORT"} else 0.0)
     return {
         "symbol": symbol,
@@ -264,26 +438,26 @@ def build_symbol_state(
         "base_edge_score": round(edge_score, 6),
         "volatility": round(float(volatility), 6),
         "regime": regime,
-        "trend_strength": float(reactive_eval.get("trend_strength", regime_obs.get("trend_strength", 0.0)) or 0.0),
-        "time_window_mode": reactive_eval.get("time_window_mode", "BLOCKED"),
-        "strategy_id": reactive_eval.get("strategy_id"),
-        "strategy_unit": reactive_eval.get("strategy_unit"),
+        "trend_strength": float(selected_eval.get("trend_strength", regime_obs.get("trend_strength", 0.0)) or 0.0),
+        "time_window_mode": selected_eval.get("time_window_mode", "BLOCKED"),
+        "strategy_id": selected_eval.get("strategy_id"),
+        "strategy_unit": selected_eval.get("strategy_unit"),
         "strategy_signal": signal,
         "strategy_signal_source": signal_source,
         "strategy_signal_score": round(strategy_score, 6),
-        "roc_10": reactive_eval.get("roc_10", 0.0),
-        "rsi_14": reactive_eval.get("rsi_14", 50.0),
-        "sma_20": reactive_eval.get("sma_20", 0.0),
-        "close": reactive_eval.get("close", 0.0),
-        "volume_ratio": reactive_eval.get("volume_ratio", 0.0),
-        "take_profit_pct": reactive_eval.get("take_profit_pct", REACTIVE_TP_PCT),
-        "stop_loss_pct": reactive_eval.get("stop_loss_pct", REACTIVE_SL_PCT),
-        "shock_move_1m_pct": reactive_eval.get("shock_move_1m_pct", 0.0),
-        "shock_move_2m_pct": reactive_eval.get("shock_move_2m_pct", 0.0),
-        "shock_move_3m_pct": reactive_eval.get("shock_move_3m_pct", 0.0),
-        "trigger_direction": reactive_eval.get("trigger_direction", ""),
-        "momentum_signal": reactive_eval.get("momentum_signal", "HOLD"),
-        "momentum_score": reactive_eval.get("momentum_score", 0.0),
+        "roc_10": selected_eval.get("roc_10", 0.0),
+        "rsi_14": selected_eval.get("rsi_14", 50.0),
+        "sma_20": selected_eval.get("sma_20", 0.0),
+        "close": selected_eval.get("close", 0.0),
+        "volume_ratio": selected_eval.get("volume_ratio", 0.0),
+        "take_profit_pct": selected_eval.get("take_profit_pct", REACTIVE_TP_PCT),
+        "stop_loss_pct": selected_eval.get("stop_loss_pct", REACTIVE_SL_PCT),
+        "shock_move_1m_pct": selected_eval.get("shock_move_1m_pct", 0.0),
+        "shock_move_2m_pct": selected_eval.get("shock_move_2m_pct", 0.0),
+        "shock_move_3m_pct": selected_eval.get("shock_move_3m_pct", 0.0),
+        "trigger_direction": selected_eval.get("trigger_direction", ""),
+        "momentum_signal": selected_eval.get("momentum_signal", "HOLD"),
+        "momentum_score": selected_eval.get("momentum_score", 0.0),
     }
 
 
