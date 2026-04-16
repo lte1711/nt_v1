@@ -4,13 +4,28 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $bootRoot = Join-Path $projectRoot "BOOT"
 $pythonExe = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $dashboardScript = Join-Path $projectRoot "tools\dashboard\multi5_dashboard_server.py"
-$apiCmd = Join-Path $projectRoot "tools\ops\run_api_8100.cmd"
+$apiScript = Join-Path $projectRoot "tools\ops\run_api_8100.py"
 $startEngineScript = Join-Path $bootRoot "start_engine.ps1"
 
 . (Join-Path $bootRoot "common_process_helpers.ps1")
 
 if (-not (Test-Path $pythonExe)) {
     throw "Virtualenv python not found: $pythonExe"
+}
+
+function Resolve-ApiPythonExe {
+    $venvCfg = Join-Path $projectRoot ".venv\pyvenv.cfg"
+    if (Test-Path $venvCfg) {
+        $homeLine = Get-Content $venvCfg | Where-Object { $_ -match '^\s*home\s*=' } | Select-Object -First 1
+        if ($homeLine) {
+            $homeValue = ($homeLine -split "=", 2)[1].Trim()
+            $candidate = Join-Path $homeValue "python.exe"
+            if (Test-Path $candidate) {
+                return $candidate
+            }
+        }
+    }
+    return $pythonExe
 }
 
 function Test-TcpPortOpen([int]$Port, [int]$TimeoutMs = 1000) {
@@ -42,26 +57,68 @@ function Wait-ForPortListening([int]$Port, [int]$TimeoutSec = 30) {
 
 function Test-HttpOk([string]$Url, [int]$TimeoutSec = 8) {
     try {
-        $resp = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec $TimeoutSec
-        return ([int]$resp.StatusCode -eq 200)
+        $status = & curl.exe -s -o NUL -w "%{http_code}" --max-time $TimeoutSec $Url
+        return ($LASTEXITCODE -eq 0 -and "$status".Trim() -eq "200")
     } catch {
         return $false
     }
 }
 
+function Test-ApiHealthy([int]$TimeoutSec = 4) {
+    foreach ($url in @(
+        "http://127.0.0.1:8100/api/status",
+        "http://127.0.0.1:8100/openapi.json"
+    )) {
+        if (Test-HttpOk -Url $url -TimeoutSec $TimeoutSec) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Stop-ApiProcesses {
+    $apiProcesses = @(Get-CimInstance Win32_Process | Where-Object {
+        $_.Name -eq "python.exe" -and (
+            $_.CommandLine -match "run_api_8100\.py" -or
+            $_.CommandLine -match "next_trade\.api\.app:app" -or
+            $_.CommandLine -match "uvicorn.*8100"
+        )
+    })
+    foreach ($proc in @($apiProcesses | Sort-Object ProcessId -Descending)) {
+        try {
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+        } catch {
+        }
+    }
+}
+
 function Ensure-ApiStarted {
-    if (Test-TcpPortOpen -Port 8100 -TimeoutMs 1000) {
+    if ((Test-TcpPortOpen -Port 8100 -TimeoutMs 1000) -and (Test-ApiHealthy -TimeoutSec 3)) {
         Write-Host "API already listening on 8100" -ForegroundColor Yellow
         return
     }
-    if (-not (Test-Path $apiCmd)) {
-        throw "Missing API launch command: $apiCmd"
+    if (Test-TcpPortOpen -Port 8100 -TimeoutMs 1000) {
+        Stop-ApiProcesses
+        Start-Sleep -Seconds 2
     }
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $apiCmd -WindowStyle Hidden | Out-Null
+    if (-not (Test-Path $apiScript)) {
+        throw "Missing API launch script: $apiScript"
+    }
+    $apiPythonExe = Resolve-ApiPythonExe
+    Start-Process -FilePath $apiPythonExe -ArgumentList $apiScript -WorkingDirectory $projectRoot -WindowStyle Hidden | Out-Null
     if (-not (Wait-ForPortListening -Port 8100 -TimeoutSec 30)) {
         throw "API did not start listening on port 8100"
     }
-    Write-Host "API listening on 8100" -ForegroundColor Green
+    $deadline = (Get-Date).AddSeconds(30)
+    do {
+        if (Test-ApiHealthy -TimeoutSec 4) {
+            Write-Host "API listening on 8100" -ForegroundColor Green
+            return
+        }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+
+    throw "API health probe failed"
 }
 
 function Ensure-DashboardStarted {

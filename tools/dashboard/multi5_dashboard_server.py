@@ -21,9 +21,9 @@ HTML_PATH = ROOT / "tools" / "dashboard" / "multi5_dashboard.html"
 REPORTS_ROOT = ROOT / "reports"
 _SNAPSHOT_CACHE: dict[str, Any] = {"ts": 0.0, "data": {}}
 _HONEY_DIR_CACHE: dict[str, Any] = {"ts": 0.0, "path": None}
-_EQUITY_HISTORY_CACHE: dict[str, Any] = {"ts": 0.0, "data": []}
+_EQUITY_HISTORY_CACHE: dict[str, Any] = {"ts": 0.0, "data": []}  # Disabled - use real-time data only
 _PROCESS_ROLE_CACHE: dict[str, Any] = {"ts": 0.0, "data": {"roles": [], "effective_role_count": 0, "raw_process_count": 0}}
-_KST_DAILY_SYMBOL_CACHE: dict[str, Any] = {"ts": 0.0, "data": {"summary": {}, "rows": []}}
+_KST_DAILY_SYMBOL_CACHE: dict[str, Any] = {"ts": 0.0, "data": {"summary": {}, "rows": []}}  # Disabled - use real-time data only
 
 
 def utc_now_iso() -> str:
@@ -238,9 +238,10 @@ def _read_last_lines_efficiently(path: Path, limit: int) -> list[dict[str, Any]]
 
 
 def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dict[str, Any]]:
+    # Cache disabled - always build real-time equity history
     now = time.time()
-    if now - float(_EQUITY_HISTORY_CACHE.get("ts", 0.0)) < 300:  # 300초 캐시
-        return list(_EQUITY_HISTORY_CACHE.get("data", []))
+    # if now - float(_EQUITY_HISTORY_CACHE.get("ts", 0.0)) < 300:  # 300초 캐시
+    #     return list(_EQUITY_HISTORY_CACHE.get("data", []))
 
     print("DEBUG: Building real-time equity_history from API server")
     points: list[dict[str, Any]] = []
@@ -273,8 +274,8 @@ def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dic
                 
                 print(f"DEBUG: Generated {len(points)} real-time equity points from API")
                 
-                _EQUITY_HISTORY_CACHE["ts"] = now
-                _EQUITY_HISTORY_CACHE["data"] = points
+                # _EQUITY_HISTORY_CACHE["ts"] = now  # Cache disabled
+                # _EQUITY_HISTORY_CACHE["data"] = points  # Cache disabled
                 return points
         
     except Exception as e:
@@ -314,8 +315,8 @@ def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dic
         
         if points:
             points = _dedupe_equity_points(sorted(points, key=lambda item: item["ts"]))
-            _EQUITY_HISTORY_CACHE["ts"] = now
-            _EQUITY_HISTORY_CACHE["data"] = points
+            # _EQUITY_HISTORY_CACHE["ts"] = now  # Cache disabled
+            # _EQUITY_HISTORY_CACHE["data"] = points  # Cache disabled
             return points
             
     except Exception as e:
@@ -364,8 +365,8 @@ def build_equity_history(limit: int = 1000, window_minutes: int = 5) -> list[dic
     
     print("DEBUG: Generated {} real-time data points (no constant pattern)".format(len(real_points)))
     
-    _EQUITY_HISTORY_CACHE["ts"] = now
-    _EQUITY_HISTORY_CACHE["data"] = real_points
+    # _EQUITY_HISTORY_CACHE["ts"] = now  # Cache disabled
+    # _EQUITY_HISTORY_CACHE["data"] = real_points  # Cache disabled
     return real_points
 
 
@@ -399,13 +400,14 @@ def build_allocation_top(limit: int = 8) -> list[dict[str, Any]]:
 
 
 def build_kst_daily_symbol_stats(limit: int = 12) -> dict[str, Any]:
+    # Cache disabled - always build real-time KST daily symbol stats
     now = time.time()
     cached = _KST_DAILY_SYMBOL_CACHE.get("data", {})
-    if now - float(_KST_DAILY_SYMBOL_CACHE.get("ts", 0.0)) < 10:
-        return {
-            "summary": dict(cached.get("summary", {})),
-            "rows": list(cached.get("rows", [])),
-        }
+    # if now - float(_KST_DAILY_SYMBOL_CACHE.get("ts", 0.0)) < 10:
+    #     return {
+    #         "summary": dict(cached.get("summary", {})),
+    #         "rows": list(cached.get("rows", [])),
+    #     }
 
     try:
         from zoneinfo import ZoneInfo
@@ -886,9 +888,10 @@ def build_runtime_payload() -> dict[str, Any]:
             f"포트폴리오 스냅샷이 {portfolio_snapshot_age_sec}초 동안 갱신되지 않았습니다. 현재 카드는 {current_equity_source_label} 기준입니다"
         )
 
-    runtime_realized_pnl_value = portfolio_snapshot.get("realized_pnl", summary.get("daily_realized_pnl", 0))
-    trade_count_value = portfolio_snapshot.get("total_trades", summary.get("daily_trades", 0))
-    pnl_source_name = "portfolio_metrics_snapshot" if portfolio_snapshot.get("realized_pnl") is not None else "summary_json"
+    # Use only real-time data from current snapshot, ignore historical summary data
+    runtime_realized_pnl_value = portfolio_snapshot.get("realized_pnl", 0.0)
+    trade_count_value = portfolio_snapshot.get("total_trades", 0)
+    pnl_source_name = "portfolio_metrics_snapshot"  # Always use current snapshot
 
     payload = {
         "engine_status": "RUNNING" if effective_engine_running else "STOPPED",
