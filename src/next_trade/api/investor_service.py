@@ -898,6 +898,69 @@ async def get_investor_positions_service() -> dict[str, Any]:
     return result
 
 
+async def get_investor_open_orders_service(limit: int = 200) -> dict[str, Any]:
+    _load_runtime_env_defaults()
+    api_key = os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER", "").strip()
+    api_secret = os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER", "").strip()
+
+    if not api_key or not api_secret:
+        raise HTTPException(status_code=400, detail="testnet credentials missing")
+
+    base_url = _resolve_api_base()
+    server_time_ms = _get_binance_server_time()
+    try:
+        payload = _signed_get(
+            base_url=base_url,
+            api_key=api_key,
+            api_secret=api_secret,
+            path="/fapi/v1/openOrders",
+            params={"timestamp": str(server_time_ms), "recvWindow": "5000"},
+        )
+    except Exception as exc:
+        return {
+            "ok": False,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "source": "binance_futures",
+            "count": 0,
+            "rows": [],
+            "error": str(exc),
+        }
+
+    rows: list[dict[str, Any]] = []
+    if isinstance(payload, list):
+        for row in payload[: max(1, int(limit or 200))]:
+            if not isinstance(row, dict):
+                continue
+            rows.append(
+                {
+                    "symbol": _to_str_or_empty(row.get("symbol")),
+                    "orderId": row.get("orderId"),
+                    "clientOrderId": _to_str_or_empty(row.get("clientOrderId")),
+                    "side": _to_str_or_empty(row.get("side")),
+                    "positionSide": _to_str_or_empty(row.get("positionSide")),
+                    "type": _to_str_or_empty(row.get("type")),
+                    "origQty": _to_str_or_empty(row.get("origQty")),
+                    "executedQty": _to_str_or_empty(row.get("executedQty")),
+                    "price": _to_str_or_empty(row.get("price")),
+                    "stopPrice": _to_str_or_empty(row.get("stopPrice")),
+                    "status": _to_str_or_empty(row.get("status")),
+                    "reduceOnly": bool(row.get("reduceOnly", False)),
+                    "closePosition": bool(row.get("closePosition", False)),
+                    "workingType": _to_str_or_empty(row.get("workingType")),
+                    "time": row.get("time"),
+                    "updateTime": row.get("updateTime"),
+                }
+            )
+
+    return {
+        "ok": True,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "source": "binance_futures",
+        "count": len(rows),
+        "rows": rows,
+    }
+
+
 async def get_investor_account_service() -> dict[str, Any]:
     """계좌 자산 정보 가져오기"""
     _load_runtime_env_defaults()

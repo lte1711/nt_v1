@@ -249,6 +249,21 @@ class DashboardRuntimeFixTests(unittest.TestCase):
         self.assertIn("STATE_RESET=YES", script)
         self.assertIn("profitmax_v1_runner", script)
 
+    def test_start_project_uses_safe_boot_scripts(self) -> None:
+        script = (ROOT / "scripts" / "start_project.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("start_api_8100_safe.ps1", script)
+        self.assertIn("start_dashboard_8788.ps1", script)
+        self.assertIn("Invoke-BootScript", script)
+        self.assertIn("Boot output:", script)
+
+    def test_start_engine_stops_stale_workers_before_new_boot(self) -> None:
+        script = (ROOT / "BOOT" / "start_engine.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("Get-WorkerProcesses", script)
+        self.assertIn("Stop-StaleWorkers", script)
+        self.assertIn("STALE_WORKER_STOPPED_PID", script)
+
 
 if __name__ == "__main__":
     unittest.main()

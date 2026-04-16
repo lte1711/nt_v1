@@ -15,6 +15,26 @@ if (-not (Test-Path $pythonExe)) {
 $dashboardScript = Join-Path $projectRoot 'tools\dashboard\multi5_dashboard_server.py'
 $workdir = Split-Path $dashboardScript -Parent
 
+function Test-DashboardHealthy([int]$TimeoutSec = 6) {
+    try {
+        $status = & curl.exe -s -o NUL -w "%{http_code}" --max-time $TimeoutSec "http://127.0.0.1:8788/api/health"
+        return ($LASTEXITCODE -eq 0 -and "$status".Trim() -eq "200")
+    } catch {
+        return $false
+    }
+}
+
+function Wait-ForDashboardHealthy([int]$TimeoutSec = 30) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    do {
+        if (Test-DashboardHealthy -TimeoutSec 6) {
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+    return $false
+}
+
 function Get-DashboardProcesses {
     @(Get-PythonProcessesByCommandPatterns -Patterns @('*multi5_dashboard_server.py*'))
 }
@@ -93,22 +113,26 @@ $afterChains = @(Get-DashboardProcessChains)
 $listenersAfter = @(Get-ListenerPidsByPort -Port 8788)
 $apiStatus = 'ERROR'
 $selfProbeResults = @()
-try {
-    for ($i = 1; $i -le $SelfProbeCount; $i++) {
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        $resp = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8788/api/health' -TimeoutSec $SelfProbeTimeoutSec
-        $sw.Stop()
-        $selfProbeResults += [pscustomobject]@{
-            run = $i
-            status = [int]$resp.StatusCode
-            elapsed_ms = $sw.ElapsedMilliseconds
-            body_len = ([string]$resp.Content).Length
+if (Wait-ForDashboardHealthy -TimeoutSec ([Math]::Max(10, $SelfProbeCount * 4))) {
+    try {
+        for ($i = 1; $i -le $SelfProbeCount; $i++) {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $status = & curl.exe -s -o NUL -w "%{http_code}" --max-time $SelfProbeTimeoutSec "http://127.0.0.1:8788/api/health"
+            $sw.Stop()
+            $selfProbeResults += [pscustomobject]@{
+                run = $i
+                status = [int]$status
+                elapsed_ms = $sw.ElapsedMilliseconds
+                body_len = 0
+            }
+            Start-Sleep -Milliseconds $SelfProbeSleepMs
         }
-        Start-Sleep -Milliseconds $SelfProbeSleepMs
+        $apiStatus = [string][int]($selfProbeResults[-1].status)
+    } catch {
+        $apiStatus = 'ERROR:' + $_.Exception.Message
     }
-    $apiStatus = [string][int]($selfProbeResults[-1].status)
-} catch {
-    $apiStatus = 'ERROR:' + $_.Exception.Message
+} else {
+    $apiStatus = 'ERROR:dashboard health probe failed'
 }
 
 [pscustomobject]@{

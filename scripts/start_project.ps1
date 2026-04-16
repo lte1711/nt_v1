@@ -5,6 +5,8 @@ $bootRoot = Join-Path $projectRoot "BOOT"
 $pythonExe = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $dashboardScript = Join-Path $projectRoot "tools\dashboard\multi5_dashboard_server.py"
 $apiScript = Join-Path $projectRoot "tools\ops\run_api_8100.py"
+$startApiScript = Join-Path $bootRoot "start_api_8100_safe.ps1"
+$startDashboardScript = Join-Path $bootRoot "start_dashboard_8788.ps1"
 $startEngineScript = Join-Path $bootRoot "start_engine.ps1"
 
 . (Join-Path $bootRoot "common_process_helpers.ps1")
@@ -26,6 +28,28 @@ function Resolve-ApiPythonExe {
         }
     }
     return $pythonExe
+}
+
+function Invoke-BootScript([string]$ScriptPath, [int]$TimeoutSec = 60) {
+    if (-not (Test-Path $ScriptPath)) {
+        throw "Missing boot script: $ScriptPath"
+    }
+
+    $job = Start-Job -ScriptBlock {
+        param($Path)
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $Path 2>&1
+    } -ArgumentList $ScriptPath
+
+    try {
+        if (-not (Wait-Job -Job $job -Timeout $TimeoutSec)) {
+            Stop-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
+            throw "Boot script timed out: $ScriptPath"
+        }
+        $output = @(Receive-Job -Job $job -Keep)
+        return [string]($output -join "`n")
+    } finally {
+        Remove-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
+    }
 }
 
 function Test-TcpPortOpen([int]$Port, [int]$TimeoutMs = 1000) {
@@ -92,44 +116,51 @@ function Stop-ApiProcesses {
     }
 }
 
+function Get-DashboardProcesses {
+    @(Get-CimInstance Win32_Process | Where-Object {
+        $_.Name -eq "python.exe" -and $_.CommandLine -match "multi5_dashboard_server\.py"
+    })
+}
+
+function Stop-DashboardProcesses {
+    $dashboardProcesses = @(Get-DashboardProcesses)
+    foreach ($proc in @($dashboardProcesses | Sort-Object ProcessId -Descending)) {
+        try {
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction Stop
+        } catch {
+        }
+    }
+}
+
 function Ensure-ApiStarted {
-    if ((Test-TcpPortOpen -Port 8100 -TimeoutMs 1000) -and (Test-ApiHealthy -TimeoutSec 3)) {
-        Write-Host "API already listening on 8100" -ForegroundColor Yellow
-        return
-    }
-    if (Test-TcpPortOpen -Port 8100 -TimeoutMs 1000) {
-        Stop-ApiProcesses
-        Start-Sleep -Seconds 2
-    }
-    if (-not (Test-Path $apiScript)) {
-        throw "Missing API launch script: $apiScript"
-    }
-    $apiPythonExe = Resolve-ApiPythonExe
-    Start-Process -FilePath $apiPythonExe -ArgumentList $apiScript -WorkingDirectory $projectRoot -WindowStyle Hidden | Out-Null
-    if (-not (Wait-ForPortListening -Port 8100 -TimeoutSec 30)) {
-        throw "API did not start listening on port 8100"
-    }
+    $bootOutput = Invoke-BootScript -ScriptPath $startApiScript -TimeoutSec 45
     $deadline = (Get-Date).AddSeconds(30)
     do {
         if (Test-ApiHealthy -TimeoutSec 4) {
-            Write-Host "API listening on 8100" -ForegroundColor Green
+            if ($bootOutput -match "API_8100_ALREADY_RUNNING=YES") {
+                Write-Host "API already listening on 8100" -ForegroundColor Yellow
+            } else {
+                Write-Host "API listening on 8100" -ForegroundColor Green
+            }
             return
         }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $deadline)
 
-    throw "API health probe failed"
+    throw "API health probe failed. Boot output: $bootOutput"
 }
 
 function Ensure-DashboardStarted {
-    if (Test-TcpPortOpen -Port 8788 -TimeoutMs 1000) {
+    $dashboardProcesses = @(Get-DashboardProcesses)
+    if ((Test-TcpPortOpen -Port 8788 -TimeoutMs 1000) -and (Test-HttpOk -Url "http://127.0.0.1:8788/api/health" -TimeoutSec 6) -and $dashboardProcesses.Count -eq 1) {
         Write-Host "Dashboard already listening on 8788" -ForegroundColor Yellow
         return
     }
-    Start-Process -FilePath $pythonExe -ArgumentList $dashboardScript -WorkingDirectory $projectRoot -WindowStyle Hidden | Out-Null
-    if (-not (Wait-ForPortListening -Port 8788 -TimeoutSec 30)) {
-        throw "Dashboard did not start listening on port 8788"
+    if ($dashboardProcesses.Count -gt 0 -or (Test-TcpPortOpen -Port 8788 -TimeoutMs 1000)) {
+        Stop-DashboardProcesses
+        Start-Sleep -Seconds 2
     }
+    Start-Process -FilePath $pythonExe -ArgumentList $dashboardScript -WorkingDirectory $projectRoot -WindowStyle Hidden | Out-Null
     $deadline = (Get-Date).AddSeconds(45)
     do {
         if (Test-HttpOk -Url "http://127.0.0.1:8788/api/health" -TimeoutSec 8) {
@@ -143,19 +174,7 @@ function Ensure-DashboardStarted {
 }
 
 function Ensure-EngineStarted {
-    $existingEngine = @(Get-CimInstance Win32_Process | Where-Object {
-        $_.Name -eq "python.exe" -and $_.CommandLine -match "run_multi5_engine\.py"
-    })
-    if ($existingEngine.Count -ge 1) {
-        Write-Host "Engine process already detected" -ForegroundColor Yellow
-        return
-    }
-
-    Start-Process -FilePath "powershell.exe" -ArgumentList @(
-        "-NoProfile",
-        "-ExecutionPolicy", "Bypass",
-        "-File", $startEngineScript
-    ) -WindowStyle Hidden | Out-Null
+    $bootOutput = [string](& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $startEngineScript 2>&1 | Out-String)
 
     $deadline = (Get-Date).AddSeconds(45)
     do {
@@ -163,14 +182,18 @@ function Ensure-EngineStarted {
             $_.Name -eq "python.exe" -and $_.CommandLine -match "run_multi5_engine\.py"
         })
         if ($engineProcesses.Count -ge 1) {
-            Write-Host "Engine process detected" -ForegroundColor Green
+            if ($bootOutput -match "ENGINE_ALREADY_RUNNING=YES") {
+                Write-Host "Engine process already detected" -ForegroundColor Yellow
+            } else {
+                Write-Host "Engine process detected" -ForegroundColor Green
+            }
             return
         }
         Start-Sleep -Seconds 2
     } while ((Get-Date) -lt $deadline)
 
     if ($engineProcesses.Count -lt 1) {
-        throw "Engine process was not detected after startup"
+        throw "Engine process was not detected after startup. Boot output: $bootOutput"
     }
 }
 

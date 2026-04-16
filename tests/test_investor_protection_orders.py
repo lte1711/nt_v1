@@ -8,7 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.next_trade.api.investor_service import _build_submit_payload, _normalize_order_payload  # noqa: E402
+from src.next_trade.api.investor_service import (  # noqa: E402
+    _build_submit_payload,
+    _normalize_order_payload,
+)
 
 
 class InvestorProtectionOrderTests(unittest.TestCase):
@@ -56,6 +59,12 @@ class InvestorProtectionOrderTests(unittest.TestCase):
         self.assertEqual(params["workingType"], "MARK_PRICE")
         self.assertNotIn("quantity", params)
         self.assertNotIn("reduceOnly", params)
+
+    def test_investor_routes_expose_open_orders_and_ops_positions_alias(self) -> None:
+        script = (ROOT / "src" / "next_trade" / "api" / "routes_v1_investor.py").read_text(encoding="utf-8")
+
+        self.assertIn('@router.get("/api/v1/trading/open-orders")', script)
+        self.assertIn('@router.get("/api/v1/ops/positions")', script)
 
 
 if __name__ == "__main__":

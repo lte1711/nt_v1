@@ -33,6 +33,39 @@ function Get-EngineProcesses {
     }
 }
 
+function Get-WorkerProcesses {
+    try {
+        return @(
+            Get-CimInstance Win32_Process | Where-Object {
+                $_.Name -eq "python.exe" -and
+                $_.CommandLine -ne $null -and
+                $_.CommandLine -match "profitmax_v1_runner\.py"
+            }
+        )
+    } catch {
+        Write-Warning "WORKER_PROCESS_DETECTION_ERROR: $_"
+        return @()
+    }
+}
+
+function Stop-StaleWorkers {
+    $workers = @(Get-WorkerProcesses)
+    if ($workers.Count -eq 0) {
+        return
+    }
+
+    foreach ($worker in $workers) {
+        try {
+            Stop-Process -Id $worker.ProcessId -Force -ErrorAction Stop
+            Write-Host "STALE_WORKER_STOPPED_PID=$($worker.ProcessId)"
+        } catch {
+            Write-Warning "STALE_WORKER_STOP_FAILED_PID=$($worker.ProcessId)"
+        }
+    }
+
+    Start-Sleep -Seconds 1
+}
+
 function Stop-DuplicateEngineRoots([array]$processes) {
     $items = @($processes)
     if ($items.Count -le 1) {
@@ -128,6 +161,8 @@ try {
         Write-Output "ENGINE_PID_LIST=$pids"
         exit 0
     }
+
+    Stop-StaleWorkers
 
     # STEP 3: Prepare timestamped engine log file paths.
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
