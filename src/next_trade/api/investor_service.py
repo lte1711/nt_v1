@@ -233,6 +233,13 @@ def _normalize_order_payload(payload: dict[str, Any]) -> dict[str, Any]:
             quantity=quantity,
             reduce_only=reduce_only,
         )
+    normalized_price, normalized_stop_price, tick_size = _normalize_price_fields_for_symbol(
+        base_url=base_url,
+        symbol=symbol,
+        price=payload.get("price"),
+        stop_price=stop_price,
+    )
+    normalization_meta["tick_size"] = tick_size
 
     return {
         "action": "submit_order",
@@ -245,8 +252,8 @@ def _normalize_order_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "reduceOnly": reduce_only,
         "profile": profile,
         "dry_run": dry_run,
-        "price": payload.get("price"),
-        "stopPrice": stop_price,
+        "price": normalized_price,
+        "stopPrice": normalized_stop_price,
         "closePosition": close_position,
         "workingType": working_type,
         "quantity_before_normalize": quantity_before_normalize,
@@ -268,7 +275,16 @@ def _floor_to_step(value: float, step_size: float) -> float:
     return round(floored, _step_decimals(step_size))
 
 
-def _fetch_symbol_filters(base_url: str, symbol: str) -> tuple[float, float, float]:
+def _round_to_tick(value: float, tick_size: float) -> float:
+    if tick_size <= 0:
+        return value
+    rounded = round(round(value / tick_size) * tick_size, _step_decimals(tick_size))
+    if rounded <= 0:
+        rounded = round(tick_size, _step_decimals(tick_size))
+    return rounded
+
+
+def _fetch_symbol_filters(base_url: str, symbol: str) -> tuple[float, float, float, float]:
     now = time.time()
     if symbol in _SYMBOL_FILTER_CACHE and now - _SYMBOL_FILTER_CACHE_TS.get(symbol, 0.0) < _SYMBOL_FILTER_CACHE_TTL_SEC:
         row = _SYMBOL_FILTER_CACHE[symbol]
@@ -276,11 +292,13 @@ def _fetch_symbol_filters(base_url: str, symbol: str) -> tuple[float, float, flo
             float(row.get("step_size", 0.0)),
             float(row.get("min_qty", 0.0)),
             float(row.get("min_notional", 0.0)),
+            float(row.get("tick_size", 0.0)),
         )
 
     step_size = 0.0
     min_qty = 0.0
     min_notional = 0.0
+    tick_size = 0.0
     url = f"{base_url}/fapi/v1/exchangeInfo"
     response = requests.get(url, timeout=8)
     response.raise_for_status()
@@ -298,14 +316,21 @@ def _fetch_symbol_filters(base_url: str, symbol: str) -> tuple[float, float, flo
                 lot = flt
             elif ftype in {"MIN_NOTIONAL", "NOTIONAL"}:
                 min_notional = float(flt.get("notional") or flt.get("minNotional") or 0.0)
+            elif ftype == "PRICE_FILTER":
+                tick_size = float(flt.get("tickSize") or 0.0)
         target = market_lot or lot or {}
         step_size = float(target.get("stepSize") or 0.0)
         min_qty = float(target.get("minQty") or 0.0)
         break
 
-    _SYMBOL_FILTER_CACHE[symbol] = {"step_size": step_size, "min_qty": min_qty, "min_notional": min_notional}
+    _SYMBOL_FILTER_CACHE[symbol] = {
+        "step_size": step_size,
+        "min_qty": min_qty,
+        "min_notional": min_notional,
+        "tick_size": tick_size,
+    }
     _SYMBOL_FILTER_CACHE_TS[symbol] = now
-    return step_size, min_qty, min_notional
+    return step_size, min_qty, min_notional, tick_size
 
 
 def _normalize_quantity_for_symbol(
@@ -317,7 +342,7 @@ def _normalize_quantity_for_symbol(
     reduce_only: bool,
 ) -> tuple[float, dict[str, Any]]:
     try:
-        step_size, min_qty, min_notional = _fetch_symbol_filters(base_url=base_url, symbol=symbol)
+        step_size, min_qty, min_notional, _tick_size = _fetch_symbol_filters(base_url=base_url, symbol=symbol)
     except Exception:
         return quantity, {
             "step_size": 0.0,
@@ -372,6 +397,35 @@ def _normalize_quantity_for_symbol(
         "adjusted": adjusted != quantity,
         "min_notional_guard_applied": min_notional_guard_applied,
     }
+
+
+def _normalize_price_fields_for_symbol(
+    *,
+    base_url: str,
+    symbol: str,
+    price: Any,
+    stop_price: float | None,
+) -> tuple[Any, float | None, float]:
+    try:
+        _step_size, _min_qty, _min_notional, tick_size = _fetch_symbol_filters(base_url=base_url, symbol=symbol)
+    except Exception:
+        return price, stop_price, 0.0
+
+    normalized_price = price
+    if price not in (None, ""):
+        try:
+            normalized_price = _round_to_tick(float(price), tick_size)
+        except (TypeError, ValueError):
+            normalized_price = price
+
+    normalized_stop = stop_price
+    if stop_price not in (None, ""):
+        try:
+            normalized_stop = _round_to_tick(float(stop_price), tick_size)
+        except (TypeError, ValueError):
+            normalized_stop = stop_price
+
+    return normalized_price, normalized_stop, tick_size
 
 
 def _reject_cooldown_key(order: dict[str, Any]) -> str:
@@ -429,15 +483,32 @@ def _build_submit_payload(
         if position_side != "BOTH":
             params["positionSide"] = "LONG" if order["side"] == "SELL" else "SHORT"
     if order["type"] == "LIMIT":
-        params["timeInForce"] = "GTC"
+        params["timeInForce"] = str(order.get("timeInForce") or "GTC")
         params["price"] = f"{price_value}"
     elif order["type"] in {"STOP", "TAKE_PROFIT"}:
-        params["timeInForce"] = "GTC"
+        params["timeInForce"] = str(order.get("timeInForce") or "GTC")
         params["price"] = f"{float(order.get('price') or price_value)}"
     elif order["type"] in {"STOP_MARKET", "TAKE_PROFIT_MARKET"} and not algo_order:
         params["stopPrice"] = f"{float(order['stopPrice'])}"
         params["workingType"] = order.get("workingType", "MARK_PRICE")
     return params
+
+
+def _build_market_fallback_limit_order(
+    order: dict[str, Any],
+    *,
+    base_url: str,
+    price_value: float,
+) -> dict[str, Any]:
+    _step_size, _min_qty, _min_notional, tick_size = _fetch_symbol_filters(base_url=base_url, symbol=order["symbol"])
+    slippage_multiplier = 1.0015 if str(order["side"]).upper() == "BUY" else 0.9985
+    fallback_price = _round_to_tick(price_value * slippage_multiplier, tick_size)
+    fallback = dict(order)
+    fallback["type"] = "LIMIT"
+    fallback["timeInForce"] = "IOC"
+    fallback["price"] = fallback_price
+    fallback["clientOrderId"] = f"{order['clientOrderId']}-ioc"[:36]
+    return fallback
 
 
 def _signed_delete(
@@ -751,6 +822,70 @@ def _refresh_market_order_status(
     return latest
 
 
+def _safe_no_position_result(order: dict[str, Any], *, timestamp_ms: int, local_time_ms: int) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "accepted": False,
+        "submit_called": True,
+        "exchange": "BINANCE_TESTNET",
+        "trace_id": order["trace_id"],
+        "client_order_id": order["clientOrderId"],
+        "exchange_order_id": None,
+        "status": "SKIPPED_NO_POSITION",
+        "entry_request_qty": float(order["quantity"]),
+        "entry_filled_qty": 0.0,
+        "symbol": order["symbol"],
+        "side": order["side"],
+        "quantity": order["quantity"],
+        "reduceOnly": order["reduceOnly"],
+        "profile": order["profile"],
+        "price": order.get("price"),
+        "raw": {},
+        "exchange_code": -4509,
+        "exchange_msg": "No open position available for conditional close order",
+        "server_time": timestamp_ms,
+        "local_time": local_time_ms,
+        "timestamp_used": timestamp_ms,
+        "retry_on_1021": False,
+        "partial_fill_detected": False,
+        "has_open_remainder": False,
+        "order_terminal": True,
+        "order_type": order["type"],
+    }
+
+
+def _safe_existing_protection_result(order: dict[str, Any], *, timestamp_ms: int, local_time_ms: int) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "accepted": False,
+        "submit_called": True,
+        "exchange": "BINANCE_TESTNET",
+        "trace_id": order["trace_id"],
+        "client_order_id": order["clientOrderId"],
+        "exchange_order_id": None,
+        "status": "SKIPPED_EXISTING_PROTECTION",
+        "entry_request_qty": float(order["quantity"]),
+        "entry_filled_qty": 0.0,
+        "symbol": order["symbol"],
+        "side": order["side"],
+        "quantity": order["quantity"],
+        "reduceOnly": order["reduceOnly"],
+        "profile": order["profile"],
+        "price": order.get("price"),
+        "raw": {},
+        "exchange_code": -4130,
+        "exchange_msg": "Existing closePosition conditional order already present",
+        "server_time": timestamp_ms,
+        "local_time": local_time_ms,
+        "timestamp_used": timestamp_ms,
+        "retry_on_1021": False,
+        "partial_fill_detected": False,
+        "has_open_remainder": False,
+        "order_terminal": True,
+        "order_type": order["type"],
+    }
+
+
 def _submit_testnet_order(order: dict[str, Any]) -> dict[str, Any]:
     api_key = os.getenv("BINANCE_TESTNET_KEY_PLACEHOLDER", "").strip()
     api_secret = os.getenv("BINANCE_TESTNET_SECRET_PLACEHOLDER", "").strip()
@@ -814,6 +949,31 @@ def _submit_testnet_order(order: dict[str, Any]) -> dict[str, Any]:
         )
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
+        if detail.get("exchange_code") == -4509 and order.get("closePosition"):
+            return _safe_no_position_result(order, timestamp_ms=server_time_ms, local_time_ms=local_time_ms)
+        if detail.get("exchange_code") == -4130 and order.get("closePosition"):
+            return _safe_existing_protection_result(order, timestamp_ms=server_time_ms, local_time_ms=local_time_ms)
+        if (
+            detail.get("exchange_code") == -4131
+            and str(order.get("type", "")).upper() == "MARKET"
+            and not order.get("reduceOnly")
+            and not order.get("closePosition")
+        ):
+            fallback_order = _build_market_fallback_limit_order(order, base_url=base_url, price_value=price_value)
+            fallback_server_time_ms = _get_binance_server_time()
+            fallback_local_time_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+            fallback_result = _submit_once(
+                fallback_order,
+                base_url=base_url,
+                api_key=api_key,
+                api_secret=api_secret,
+                price_value=float(fallback_order["price"]),
+                timestamp_ms=fallback_server_time_ms,
+                local_time_ms=fallback_local_time_ms,
+            )
+            fallback_result["fallback_from_market"] = True
+            fallback_result["fallback_reason"] = detail.get("exchange_msg")
+            return fallback_result
         if detail.get("exchange_code") != -1021:
             raise
         retry_local_time_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -1230,6 +1390,7 @@ async def post_investor_order_service(payload: dict[str, Any]) -> dict[str, Any]
                 "client_order_id": order["clientOrderId"],
                 "symbol": order["symbol"],
                 "side": order["side"],
+                "type": order["type"],
                 "quantity": order["quantity"],
                 "reduceOnly": order["reduceOnly"],
                 "status": detail.get("status", exc.status_code),
@@ -1259,6 +1420,7 @@ async def post_investor_order_service(payload: dict[str, Any]) -> dict[str, Any]
             "client_order_id": order["clientOrderId"],
             "symbol": order["symbol"],
             "side": order["side"],
+            "type": order["type"],
             "quantity": order["quantity"],
             "reduceOnly": order["reduceOnly"],
             "status": result.get("status"),

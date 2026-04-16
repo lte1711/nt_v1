@@ -121,19 +121,40 @@ class AllocationRuntimeFixTests(unittest.TestCase):
         self.assertAlmostEqual(top["diversification_penalty"], 0.24, places=6)
         self.assertAlmostEqual(top["blocked_symbol_penalty"], 0.36, places=6)
 
-    def test_build_symbol_state_can_emit_exploratory_long_signal(self) -> None:
-        closes = [
-            100.0, 100.1, 100.2, 100.25, 100.3, 100.35, 100.4, 100.45, 100.5, 100.55,
-            100.6, 100.7, 100.9, 101.0, 101.2, 101.35, 101.5, 101.7, 101.9, 102.2,
-            102.5, 102.8, 103.0, 103.3, 103.7, 104.0, 104.3, 104.7, 105.0, 105.4,
+    def test_build_symbol_state_can_emit_reactive_long_signal(self) -> None:
+        closes_1m = [
+            100.0, 100.02, 100.04, 100.03, 100.01, 99.98, 99.95, 99.92, 99.88, 99.84,
+            99.8, 99.78, 99.74, 99.71, 99.67, 99.62, 99.58, 99.55, 99.51, 99.48,
+            99.42, 99.36, 99.28, 99.15, 99.0, 98.8, 98.4, 97.8, 96.7, 95.7,
         ]
-        volumes = [1000.0] * 25 + [1500.0, 1600.0, 1700.0, 1800.0, 2200.0]
+        volumes_1m = [1000.0] * 26 + [1600.0, 1800.0, 2200.0, 2600.0]
+        closes_5m = [
+            100.0, 100.05, 100.02, 100.01, 100.04, 100.0, 99.98, 100.01, 100.03, 100.0,
+            99.99, 100.02, 100.01, 100.0, 100.03, 100.01, 99.99, 100.0, 100.02, 100.01,
+            100.0, 100.01, 99.98, 100.0, 100.01, 99.99, 100.0, 100.02, 100.01, 100.0,
+        ]
+        volumes_5m = [5000.0] * len(closes_5m)
 
-        state = build_symbol_state("BTCUSDT", closes, volumes)
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="ACTIVE"):
+            state = build_symbol_state("BTCUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
 
         self.assertEqual(state["strategy_signal"], "LONG")
-        self.assertEqual(state["strategy_signal_source"], "exploratory_fallback")
+        self.assertEqual(state["strategy_signal_source"], "reactive_reversion")
+        self.assertEqual(state["strategy_id"], "reactive_reversion_v1")
         self.assertGreater(state["strategy_signal_score"], 0.0)
+        self.assertEqual(state["trigger_direction"], "DROP_REVERSION")
+
+    def test_build_symbol_state_blocks_reactive_signal_in_strong_trend(self) -> None:
+        closes_1m = [100.0] * 27 + [102.5, 103.5, 104.0]
+        volumes_1m = [1000.0] * 27 + [1800.0, 2200.0, 2600.0]
+        closes_5m = [100.0 + (i * 0.4) for i in range(30)]
+        volumes_5m = [5000.0] * len(closes_5m)
+
+        with patch("tools.multi5.multi5_symbol_scanner._resolve_time_window", return_value="ACTIVE"):
+            state = build_symbol_state("BTCUSDT", closes_1m, volumes_1m, closes_5m, volumes_5m)
+
+        self.assertEqual(state["strategy_signal"], "HOLD")
+        self.assertEqual(state["time_window_mode"], "ACTIVE")
 
     def test_collect_signal_target_symbols_includes_candidates_active_and_open(self) -> None:
         targets = collect_signal_target_symbols(

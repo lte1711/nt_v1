@@ -8,7 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import src.next_trade.api.investor_service as investor_service  # noqa: E402
 from src.next_trade.api.investor_service import (  # noqa: E402
+    _build_market_fallback_limit_order,
     _build_submit_payload,
     _is_algo_order_type,
     _normalize_order_payload,
@@ -91,6 +93,29 @@ class InvestorProtectionOrderTests(unittest.TestCase):
         self.assertTrue(_is_algo_order_type("STOP_MARKET"))
         self.assertTrue(_is_algo_order_type("TAKE_PROFIT"))
         self.assertFalse(_is_algo_order_type("MARKET"))
+
+    def test_market_fallback_limit_order_uses_ioc_and_tick_rounded_price(self) -> None:
+        original = investor_service._fetch_symbol_filters
+        investor_service._fetch_symbol_filters = lambda **_: (1.0, 1.0, 5.0, 0.00001)
+        try:
+            fallback = _build_market_fallback_limit_order(
+                {
+                    "symbol": "QUICKUSDT",
+                    "side": "BUY",
+                    "type": "MARKET",
+                    "quantity": 446.0,
+                    "clientOrderId": "pmx-test",
+                },
+                base_url="https://demo-fapi.binance.com",
+                price_value=0.01193,
+            )
+        finally:
+            investor_service._fetch_symbol_filters = original
+
+        self.assertEqual(fallback["type"], "LIMIT")
+        self.assertEqual(fallback["timeInForce"], "IOC")
+        self.assertEqual(fallback["price"], 0.01195)
+        self.assertEqual(fallback["clientOrderId"], "pmx-test-ioc")
 
     def test_investor_routes_expose_open_orders_and_ops_positions_alias(self) -> None:
         script = (ROOT / "src" / "next_trade" / "api" / "routes_v1_investor.py").read_text(encoding="utf-8")

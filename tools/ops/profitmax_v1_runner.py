@@ -4725,8 +4725,15 @@ class ProfitMaxV1Runner:
             if trailing_armed and price >= trough_price * (1 + trailing_gap_pct):
                 return True, "trailing_stop"
 
+        protection = self.position.get("protection_orders") if isinstance(self.position, dict) else None
+        has_live_protection = bool(
+            isinstance(protection, dict)
+            and any(str(value).strip() for value in (protection.get("client_order_ids") or []))
+        )
         timeout_seconds = self.config.max_position_minutes * 60
-        hard_timeout_seconds = timeout_seconds * 3
+        if has_live_protection:
+            timeout_seconds *= 2
+        hard_timeout_seconds = timeout_seconds * 2
         if held_seconds >= hard_timeout_seconds:
             self._log_event(
                 "TIMEOUT_EXIT_HARD_CAP_TRIGGERED",
@@ -4740,8 +4747,9 @@ class ProfitMaxV1Runner:
                     "gross_edge": round(gross_edge, 6),
                     "estimated_total_cost": round(estimated_total_cost, 6),
                     "net_edge": round(net_edge, 6),
-                    "timeout_minutes": int(self.config.max_position_minutes),
-                    "hard_timeout_minutes": int(self.config.max_position_minutes * 3),
+                    "timeout_minutes": round(timeout_seconds / 60.0, 3),
+                    "hard_timeout_minutes": round(hard_timeout_seconds / 60.0, 3),
+                    "has_live_protection": has_live_protection,
                     "policy": "FORCE_TIMEOUT_EXIT_ABSOLUTE_CAP",
                 },
             )
@@ -4762,7 +4770,8 @@ class ProfitMaxV1Runner:
                     "gross_edge": round(gross_edge, 6),
                     "estimated_total_cost": round(estimated_total_cost, 6),
                     "net_edge": round(net_edge, 6),
-                    "timeout_minutes": int(self.config.max_position_minutes),
+                    "timeout_minutes": round(timeout_seconds / 60.0, 3),
+                    "has_live_protection": has_live_protection,
                     "policy": "TIMEOUT_EXIT_ONLY_WHEN_NET_EDGE_NON_POSITIVE",
                 },
             )
