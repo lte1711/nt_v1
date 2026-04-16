@@ -196,10 +196,13 @@ def _normalize_order_payload(payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="side must be BUY or SELL")
     if quantity <= 0 and not close_position:
         raise HTTPException(status_code=422, detail="quantity must be positive")
-    if order_type not in {"MARKET", "LIMIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"}:
-        raise HTTPException(status_code=422, detail="type must be MARKET, LIMIT, STOP_MARKET, or TAKE_PROFIT_MARKET")
+    if order_type not in {"MARKET", "LIMIT", "STOP", "TAKE_PROFIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+        raise HTTPException(
+            status_code=422,
+            detail="type must be MARKET, LIMIT, STOP, TAKE_PROFIT, STOP_MARKET, or TAKE_PROFIT_MARKET",
+        )
     stop_price = None
-    if order_type in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+    if order_type in {"STOP", "TAKE_PROFIT", "STOP_MARKET", "TAKE_PROFIT_MARKET"}:
         try:
             stop_price = float(stop_price_raw)
         except (TypeError, ValueError):
@@ -375,6 +378,16 @@ def _reject_cooldown_key(order: dict[str, Any]) -> str:
     return f"{order['symbol']}|{order['side']}|{order['quantity']}|{bool(order['reduceOnly'])}"
 
 
+def _is_algo_order_type(order_type: str) -> bool:
+    return str(order_type or "").upper() in {
+        "STOP",
+        "TAKE_PROFIT",
+        "STOP_MARKET",
+        "TAKE_PROFIT_MARKET",
+        "TRAILING_STOP_MARKET",
+    }
+
+
 def _reject_cooldown_remaining(order: dict[str, Any]) -> float:
     expires_at = _REJECT_COOLDOWN_CACHE.get(_reject_cooldown_key(order), 0.0)
     return max(0.0, expires_at - time.time())
@@ -391,20 +404,25 @@ def _build_submit_payload(
     price_value: float,
     position_side: str,
 ) -> dict[str, str]:
+    algo_order = _is_algo_order_type(order["type"])
+    client_id_key = "clientAlgoId" if algo_order else "newClientOrderId"
     params = {
         "symbol": order["symbol"],
         "side": order["side"],
         "type": order["type"],
-        "newClientOrderId": order["clientOrderId"],
+        client_id_key: order["clientOrderId"],
         "timestamp": str(timestamp_ms),
         "recvWindow": "5000",
     }
+    if algo_order:
+        params["algoType"] = "CONDITIONAL"
+        params["triggerPrice"] = f"{float(order['stopPrice'])}"
+        params["workingType"] = order.get("workingType", "MARK_PRICE")
     if not order.get("closePosition"):
         params["quantity"] = f"{order['quantity']}"
     if order["reduceOnly"] and not order.get("closePosition"):
         params["reduceOnly"] = "true"
         if position_side != "BOTH":
-            # Hedge mode exits must declare which side is being reduced.
             params["positionSide"] = "LONG" if order["side"] == "SELL" else "SHORT"
     elif order.get("closePosition"):
         params["closePosition"] = "true"
@@ -413,7 +431,10 @@ def _build_submit_payload(
     if order["type"] == "LIMIT":
         params["timeInForce"] = "GTC"
         params["price"] = f"{price_value}"
-    elif order["type"] in {"STOP_MARKET", "TAKE_PROFIT_MARKET"}:
+    elif order["type"] in {"STOP", "TAKE_PROFIT"}:
+        params["timeInForce"] = "GTC"
+        params["price"] = f"{float(order.get('price') or price_value)}"
+    elif order["type"] in {"STOP_MARKET", "TAKE_PROFIT_MARKET"} and not algo_order:
         params["stopPrice"] = f"{float(order['stopPrice'])}"
         params["workingType"] = order.get("workingType", "MARK_PRICE")
     return params
@@ -478,10 +499,10 @@ def _cancel_testnet_protection_orders(order: dict[str, Any]) -> dict[str, Any]:
                 base_url=base_url,
                 api_key=api_key,
                 api_secret=api_secret,
-                path="/fapi/v1/order",
+                path="/fapi/v1/algoOrder",
                 params={
                     "symbol": order["symbol"],
-                    "origClientOrderId": client_order_id,
+                    "clientAlgoId": client_order_id,
                     "timestamp": str(server_time_ms),
                     "recvWindow": "5000",
                 },
@@ -535,8 +556,9 @@ def _submit_once(
     timestamp_ms: int,
     local_time_ms: int,
 ) -> dict[str, Any]:
+    algo_order = _is_algo_order_type(order["type"])
     position_side = "BOTH"
-    if order["reduceOnly"]:
+    if order["reduceOnly"] or order.get("closePosition"):
         position_side = _get_position_side(
             base_url=base_url,
             api_key=api_key,
@@ -556,7 +578,8 @@ def _submit_once(
         query_string.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
-    url = f"{base_url}/fapi/v1/order?{query_string}&signature={signature}"
+    path = "/fapi/v1/algoOrder" if algo_order else "/fapi/v1/order"
+    url = f"{base_url}{path}?{query_string}&signature={signature}"
     response = requests.post(
         url,
         headers={
@@ -574,6 +597,7 @@ def _submit_once(
                 "exchange": "BINANCE_TESTNET",
                 "trace_id": order["trace_id"],
                 "client_order_id": order["clientOrderId"],
+                "order_type": order["type"],
                 "status": response.status_code,
                 "body": response.text[:300],
                 "symbol": order["symbol"],
@@ -590,18 +614,18 @@ def _submit_once(
     exchange_payload = response.json()
     entry_request_qty = float(order["quantity"])
     entry_filled_qty = float(exchange_payload.get("executedQty") or 0.0)
-    status = str(exchange_payload.get("status") or "").upper()
+    status = str(exchange_payload.get("status") or exchange_payload.get("algoStatus") or "").upper()
     partial_fill_detected = 0.0 < entry_filled_qty < entry_request_qty
     has_open_remainder = partial_fill_detected and status in {"NEW", "PARTIALLY_FILLED"}
-    order_terminal = status in {"FILLED", "CANCELED", "EXPIRED", "REJECTED"}
+    order_terminal = status in {"FILLED", "CANCELED", "EXPIRED", "REJECTED", "SUCCESS"}
     return {
         "ok": True,
         "submit_called": True,
         "exchange": "BINANCE_TESTNET",
         "trace_id": order["trace_id"],
-        "client_order_id": exchange_payload.get("clientOrderId") or order["clientOrderId"],
-        "exchange_order_id": exchange_payload.get("orderId"),
-        "status": exchange_payload.get("status"),
+        "client_order_id": exchange_payload.get("clientOrderId") or exchange_payload.get("clientAlgoId") or order["clientOrderId"],
+        "exchange_order_id": exchange_payload.get("orderId") or exchange_payload.get("algoId"),
+        "status": exchange_payload.get("status") or exchange_payload.get("algoStatus"),
         "entry_request_qty": entry_request_qty,
         "entry_filled_qty": entry_filled_qty,
         "symbol": order["symbol"],
@@ -613,6 +637,7 @@ def _submit_once(
         "raw": exchange_payload,
         "exchange_code": exchange_payload.get("code"),
         "exchange_msg": exchange_payload.get("msg"),
+        "order_type": order["type"],
         "server_time": timestamp_ms,
         "local_time": local_time_ms,
         "timestamp_used": timestamp_ms,
@@ -916,6 +941,13 @@ async def get_investor_open_orders_service(limit: int = 200) -> dict[str, Any]:
             path="/fapi/v1/openOrders",
             params={"timestamp": str(server_time_ms), "recvWindow": "5000"},
         )
+        algo_payload = _signed_get(
+            base_url=base_url,
+            api_key=api_key,
+            api_secret=api_secret,
+            path="/fapi/v1/openAlgoOrders",
+            params={"timestamp": str(server_time_ms), "recvWindow": "5000"},
+        )
     except Exception as exc:
         return {
             "ok": False,
@@ -949,6 +981,34 @@ async def get_investor_open_orders_service(limit: int = 200) -> dict[str, Any]:
                     "workingType": _to_str_or_empty(row.get("workingType")),
                     "time": row.get("time"),
                     "updateTime": row.get("updateTime"),
+                    "orderClass": "STANDARD",
+                }
+            )
+
+    if isinstance(algo_payload, list):
+        remaining = max(0, max(1, int(limit or 200)) - len(rows))
+        for row in algo_payload[:remaining]:
+            if not isinstance(row, dict):
+                continue
+            rows.append(
+                {
+                    "symbol": _to_str_or_empty(row.get("symbol")),
+                    "orderId": row.get("algoId"),
+                    "clientOrderId": _to_str_or_empty(row.get("clientAlgoId")),
+                    "side": _to_str_or_empty(row.get("side")),
+                    "positionSide": _to_str_or_empty(row.get("positionSide")),
+                    "type": _to_str_or_empty(row.get("orderType")),
+                    "origQty": _to_str_or_empty(row.get("quantity")),
+                    "executedQty": _to_str_or_empty(row.get("executedQty")),
+                    "price": _to_str_or_empty(row.get("price")),
+                    "stopPrice": _to_str_or_empty(row.get("triggerPrice")),
+                    "status": _to_str_or_empty(row.get("algoStatus")),
+                    "reduceOnly": bool(row.get("reduceOnly", False)),
+                    "closePosition": bool(row.get("closePosition", False)),
+                    "workingType": _to_str_or_empty(row.get("workingType")),
+                    "time": row.get("createTime"),
+                    "updateTime": row.get("updateTime"),
+                    "orderClass": "CONDITIONAL",
                 }
             )
 
